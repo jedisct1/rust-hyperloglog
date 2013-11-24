@@ -10,9 +10,9 @@
 
 #[warn(non_camel_case_types,
        non_uppercase_statics,
-       non_uppercase_statics,
        unnecessary_qualification,
        managed_heap_memory)]
+
 extern mod extra;
 
 use extra::sort;
@@ -1295,11 +1295,9 @@ impl HyperLogLog {
 #[test]
 fn hyperloglog_test_simple() {
     let mut hll = HyperLogLog::new(0.00408);
-    hll.add(~"test1");
-    hll.add(~"test2");
-    hll.add(~"test3");
-    hll.add(~"test2");
-    hll.add(~"test2");
-    hll.add(~"test2");
+    let keys = ["test1", "test2", "test3", "test2", "test2", "test2"];
+    for k in keys.iter() {
+        hll.add(k.to_owned());
+    }
     assert!(hll.card().round() == 3.0);
 }
