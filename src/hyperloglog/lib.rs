@@ -1193,7 +1193,7 @@ impl HyperLogLog {
                     hash_key_2: rand::random(),}
     }
 
-    pub fn add(&mut self, value: ~str) {
+    pub fn add(&mut self, value: &str) {
         let x = value.hash_keyed(self.hash_key_1, self.hash_key_2) as uint;
         let j = x & (self.m - 1);
         let w = x >> self.p;
@@ -1296,8 +1296,8 @@ impl HyperLogLog {
 fn hyperloglog_test_simple() {
     let mut hll = HyperLogLog::new(0.00408);
     let keys = ["test1", "test2", "test3", "test2", "test2", "test2"];
-    for k in keys.iter() {
-        hll.add(k.to_owned());
+    for &k in keys.iter() {
+        hll.add(k);
     }
     assert!(hll.card().round() == 3.0);
 }
