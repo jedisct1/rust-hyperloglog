@@ -1281,7 +1281,7 @@ impl HyperLogLog {
     fn ep(&self) -> f64 {
         let mut sum: f64 = 0.0;
         for &x in self.M.iter() {
-            sum += num::pow(2.0, -x as f64);
+            sum += num::pow(2.0, -(x as f64));
         }
         let E = self.alpha * (self.m * self.m) as f64 / sum;
         if E <= (5 * self.m) as f64 {
