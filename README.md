@@ -5,7 +5,9 @@ A [HyperLogLog](https://static.googleusercontent.com/media/research.google.com/e
 
 Installation:
 
-    rustpkg install github.com/jedisct1/rust-hyperloglog
+```bash
+rustpkg install github.com/jedisct1/rust-hyperloglog
+```
 
 Usage:
 
