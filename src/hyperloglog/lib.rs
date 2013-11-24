@@ -1,6 +1,5 @@
 // (C)opyleft 2013 Frank Denis
 
-
 /*!
  * HyperLogLog implementation for Rust
  */
@@ -1248,7 +1247,11 @@ impl HyperLogLog {
 
     fn vec_count_zero(v: &[uint]) -> uint {
         let mut count: uint = 0;
-        for &x in v.iter() { if x == 0 { count += 1; } }
+        for &x in v.iter() {
+            if x == 0 {
+                count += 1;
+            }
+        }
         count
     }
 
@@ -1298,5 +1301,5 @@ fn hyperloglog_test_simple() {
     hll.add(~"test2");
     hll.add(~"test2");
     hll.add(~"test2");
-    assert!(hll . card () . floor () == 3.0);
+    assert!(hll.card().floor() == 3.0);
 }
