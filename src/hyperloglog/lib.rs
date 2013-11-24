@@ -1301,5 +1301,5 @@ fn hyperloglog_test_simple() {
     hll.add(~"test2");
     hll.add(~"test2");
     hll.add(~"test2");
-    assert!(hll.card().floor() == 3.0);
+    assert!(hll.card().round() == 3.0);
 }
