@@ -21,9 +21,9 @@ use std::rand;
 use std::u8;
 use std::vec;
 
-static TRESHOLD_DATA: [uint, ..15] =
-    [10, 20, 40, 80, 220, 400, 900, 1800, 3100, 6500, 11500, 20000, 50000,
-     120000, 350000];
+static TRESHOLD_DATA: [f64, ..15] =
+    [10.0, 20.0, 40.0, 80.0, 220.0, 400.0, 900.0, 1800.0, 3100.0, 6500.0,
+     11500.0, 20000.0, 50000.0, 120000.0, 350000.0];
 
 static RAW_ESTIMATE_DATA: &'static [&'static [f64]] =
     &[&[11.0, 11.717, 12.207, 12.7896, 13.2882, 13.8204, 14.3772, 14.9342,
@@ -1184,7 +1184,7 @@ impl HyperLogLog {
         let sr = 1.04 / error_rate;
         let p = (sr * sr).ln().ceil() as u8;
         let alpha = HyperLogLog::get_alpha(p);
-        let m = 1 << p;
+        let m = 1u << p;
         HyperLogLog{alpha: alpha,
                     p: p,
                     m: m,
@@ -1194,8 +1194,8 @@ impl HyperLogLog {
     }
 
     pub fn add(&mut self, value: &str) {
-        let x = value.hash_keyed(self.hash_key_1, self.hash_key_2) as uint;
-        let j = x & (self.m - 1);
+        let x = value.hash_keyed(self.hash_key_1, self.hash_key_2) as u64;
+        let j = x & (self.m - 1) as u64;
         let w = x >> self.p;
         let rho = HyperLogLog::get_rho(w, 64 - self.p);
         self.M[j] = u8::max(self.M[j], rho);
@@ -1216,7 +1216,7 @@ impl HyperLogLog {
     }
 
     fn get_treshold(p: u8) -> f64 {
-        TRESHOLD_DATA[p] as f64
+        TRESHOLD_DATA[p]
     }
 
     fn get_alpha(p: u8) -> f64 {
@@ -1229,7 +1229,7 @@ impl HyperLogLog {
         }
     }
 
-    fn bit_length(x: uint) -> u8 {
+    fn bit_length(x: u64) -> u8 {
         let mut bits: u8 = 0;
         let mut xm = x;
         while (xm != 0) {
@@ -1239,7 +1239,7 @@ impl HyperLogLog {
         bits
     }
 
-    fn get_rho(w: uint, max_width: u8) -> u8 {
+    fn get_rho(w: u64, max_width: u8) -> u8 {
         let rho = max_width - HyperLogLog::bit_length(w) + 1;
         assert!(rho > 0);
         rho
