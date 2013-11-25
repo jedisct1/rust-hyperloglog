@@ -18,7 +18,7 @@ extern mod extra;
 use extra::sort;
 use std::num;
 use std::rand;
-use std::uint;
+use std::u8;
 use std::vec;
 
 static TRESHOLD_DATA: [uint, ..15] =
@@ -1171,9 +1171,9 @@ static BIAS_DATA: &'static [&'static [f64]] =
 
 pub struct HyperLogLog {
     priv alpha: f64,
-    priv p: uint,
+    priv p: u8,
     priv m: uint,
-    priv M: ~[uint],
+    priv M: ~[u8],
     priv hash_key_1: u64,
     priv hash_key_2: u64,
 }
@@ -1182,13 +1182,13 @@ impl HyperLogLog {
     pub fn new(error_rate: f64) -> HyperLogLog {
         assert!(error_rate > 0.0 && error_rate < 1.0);
         let sr = 1.04 / error_rate;
-        let p = (sr * sr).ln().ceil() as uint;
+        let p = (sr * sr).ln().ceil() as u8;
         let alpha = HyperLogLog::get_alpha(p);
         let m = 1 << p;
         HyperLogLog{alpha: alpha,
                     p: p,
                     m: m,
-                    M: vec::from_elem(m, 0u),
+                    M: vec::from_elem(m, 0u8),
                     hash_key_1: rand::random(),
                     hash_key_2: rand::random(),}
     }
@@ -1198,7 +1198,7 @@ impl HyperLogLog {
         let j = x & (self.m - 1);
         let w = x >> self.p;
         let rho = HyperLogLog::get_rho(w, 64 - self.p);
-        self.M[j] = uint::max(self.M[j], rho);
+        self.M[j] = u8::max(self.M[j], rho);
     }
 
     pub fn card(&self) -> f64 {
@@ -1215,11 +1215,11 @@ impl HyperLogLog {
         }
     }
 
-    fn get_treshold(p: uint) -> f64 {
+    fn get_treshold(p: u8) -> f64 {
         TRESHOLD_DATA[p] as f64
     }
 
-    fn get_alpha(p: uint) -> f64 {
+    fn get_alpha(p: u8) -> f64 {
         assert!(p >= 4 && p <= 16);
         match p {
             4 => 0.673,
@@ -1229,8 +1229,8 @@ impl HyperLogLog {
         }
     }
 
-    fn bit_length(x: uint) -> uint {
-        let mut bits: uint = 0;
+    fn bit_length(x: uint) -> u8 {
+        let mut bits: u8 = 0;
         let mut xm = x;
         while (xm != 0) {
             bits += 1;
@@ -1239,13 +1239,13 @@ impl HyperLogLog {
         bits
     }
 
-    fn get_rho(w: uint, max_width: uint) -> uint {
+    fn get_rho(w: uint, max_width: u8) -> u8 {
         let rho = max_width - HyperLogLog::bit_length(w) + 1;
         assert!(rho > 0);
         rho
     }
 
-    fn vec_count_zero(v: &[uint]) -> uint {
+    fn vec_count_zero(v: &[u8]) -> uint {
         let mut count: uint = 0;
         for &x in v.iter() {
             if x == 0 {
@@ -1255,7 +1255,7 @@ impl HyperLogLog {
         count
     }
 
-    fn estimate_bias(E: f64, p: uint) -> f64 {
+    fn estimate_bias(E: f64, p: u8) -> f64 {
         let bias_vector = BIAS_DATA[p - 4];
         let nearest_neighbors =
             HyperLogLog::get_nearest_neighbors(E, RAW_ESTIMATE_DATA[p - 4]);
