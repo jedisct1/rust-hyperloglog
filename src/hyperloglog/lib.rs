@@ -1259,10 +1259,8 @@ impl HyperLogLog {
         let bias_vector = BIAS_DATA[p - 4];
         let nearest_neighbors =
             HyperLogLog::get_nearest_neighbors(E, RAW_ESTIMATE_DATA[p - 4]);
-        let mut sum: f64 = 0.0;
-        for &neighbor in nearest_neighbors.iter() {
-            sum += bias_vector[neighbor];
-        }
+        let sum = nearest_neighbors.iter().fold(0.0, |acc, &neighbor|
+                                                acc + bias_vector[neighbor]);
         sum / nearest_neighbors.len() as f64
     }
 
@@ -1279,10 +1277,8 @@ impl HyperLogLog {
     }
 
     fn ep(&self) -> f64 {
-        let mut sum: f64 = 0.0;
-        for &x in self.M.iter() {
-            sum += num::pow(2.0, -(x as f64));
-        }
+        let sum = self.M.iter().fold(0.0, |acc, &x|
+                                     acc + num::pow(2.0, -(x as f64)));
         let E = self.alpha * (self.m * self.m) as f64 / sum;
         if E <= (5 * self.m) as f64 {
             E - HyperLogLog::estimate_bias(E, self.p)
