@@ -1256,13 +1256,7 @@ impl HyperLogLog {
     }
 
     fn vec_count_zero(v: &[u8]) -> uint {
-        let mut count: uint = 0;
-        for &x in v.iter() {
-            if x == 0 {
-                count += 1;
-            }
-        }
-        count
+        v.iter().count(|&x| x == 0)
     }
 
     fn estimate_bias(E: f64, p: u8) -> f64 {
