@@ -1215,6 +1215,16 @@ impl HyperLogLog {
         }
     }
 
+    pub fn merge(&mut self, src: &HyperLogLog) {
+        let M_len = self.M.len();
+        assert!(src.M.len() == M_len);
+        for i in range(0, M_len) {
+            if src.M[i] > self.M[i] {
+                self.M[i] = src.M[i];
+            }
+        }
+    }
+
     fn get_treshold(p: u8) -> f64 {
         TRESHOLD_DATA[p]
     }
