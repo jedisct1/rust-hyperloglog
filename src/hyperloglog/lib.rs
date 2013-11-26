@@ -1238,6 +1238,10 @@ impl HyperLogLog {
         }
     }
 
+    pub fn clear(&mut self) {
+        self.M.mut_iter().advance(|x| { *x = 0; true });
+    }
+
     fn get_treshold(p: u8) -> f64 {
         TRESHOLD_DATA[p]
     }
@@ -1313,6 +1317,9 @@ fn hyperloglog_test_simple() {
         hll.insert(k);
     }
     assert!(hll.len().round() == 3.0);
+
+    hll.clear();
+    assert!(hll.len().round() == 0.0);
 }
 
 #[test]
