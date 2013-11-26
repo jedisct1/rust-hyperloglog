@@ -1192,6 +1192,15 @@ impl HyperLogLog {
                     hash_key_2: rand::random(),}
     }
 
+    pub fn new_from_template(hll: &HyperLogLog) -> HyperLogLog {
+        HyperLogLog{alpha: hll.alpha,
+                    p: hll.p,
+                    m: hll.m,
+                    M: vec::from_elem(hll.m, 0u8),
+                    hash_key_1: hll.hash_key_1,
+                    hash_key_2: hll.hash_key_2}
+    }
+
     pub fn add(&mut self, value: &str) {
         let x = value.hash_keyed(self.hash_key_1, self.hash_key_2) as u64;
         let j = x & (self.m - 1) as u64;
@@ -1217,9 +1226,12 @@ impl HyperLogLog {
     }
 
     pub fn merge(&mut self, src: &HyperLogLog) {
-        let M_len = self.M.len();
-        assert!(src.M.len() == M_len);
-        for i in range(0, M_len) {
+        assert!(src.alpha == self.alpha);
+        assert!(src.p == self.p);
+        assert!(src.m == self.m);
+        assert!(src.hash_key_1 == self.hash_key_1);
+        assert!(src.hash_key_2 == self.hash_key_2);
+        for i in range(0, self.m) {
             if src.M[i] > self.M[i] {
                 self.M[i] = src.M[i];
             }
@@ -1301,4 +1313,24 @@ fn hyperloglog_test_simple() {
         hll.add(k);
     }
     assert!(hll.card().round() == 3.0);
+}
+
+#[test]
+fn hyperloglog_test_merge() {
+    let mut hll = HyperLogLog::new(0.00408);
+    let keys = ["test1", "test2", "test3", "test2", "test2", "test2"];
+    for &k in keys.iter() {
+        hll.add(k);
+    }
+    assert!(hll.card().round() == 3.0);
+
+    let mut hll2 = HyperLogLog::new_from_template(&hll);
+    let keys2 = ["test3", "test4", "test4", "test4", "test4", "test1"];
+    for &k in keys2.iter() {
+        hll2.add(k);
+    }
+    assert!(hll2.card().round() == 3.0);
+
+    hll.merge(&hll2);
+    assert!(hll.card().round() == 4.0);
 }
