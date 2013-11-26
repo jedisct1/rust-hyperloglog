@@ -18,7 +18,6 @@ extern mod extra;
 use extra::sort;
 use std::num;
 use std::rand;
-use std::u8;
 use std::vec;
 
 static TRESHOLD_DATA: [f64, ..15] =
@@ -1198,7 +1197,9 @@ impl HyperLogLog {
         let j = x & (self.m - 1) as u64;
         let w = x >> self.p;
         let rho = HyperLogLog::get_rho(w, 64 - self.p);
-        self.M[j] = u8::max(self.M[j], rho);
+        if rho > self.M[j] {
+            self.M[j] = rho;
+        }
     }
 
     pub fn card(&self) -> f64 {
@@ -1242,7 +1243,7 @@ impl HyperLogLog {
     fn bit_length(x: u64) -> u8 {
         let mut bits: u8 = 0;
         let mut xm = x;
-        while (xm != 0) {
+        while xm != 0 {
             bits += 1;
             xm >>= 1;
         }
