@@ -17,7 +17,7 @@ hll.insert(~"test1");
 hll.insert(~"test2");
 let card_estimation = hll.len();
 
-let mut hll2 = HyperLogLog::new_from_template(hll);
+let mut hll2 = HyperLogLog::new_from_template(&hll);
 hll2.insert(~"test3");
 
 hll.merge(&hll2);
