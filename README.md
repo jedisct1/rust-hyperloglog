@@ -6,7 +6,7 @@ A [HyperLogLog](https://static.googleusercontent.com/media/research.google.com/e
 Installation:
 
 ```bash
-rustpkg install hyperloglog
+rustpkg -O install hyperloglog
 ```
 
 Usage:
