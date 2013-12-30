@@ -5,7 +5,7 @@
  */
 #[desc = "A hyperloglog implementation."];
 #[license = "BSD"];
-#[create_ud = "hyperloglog#0.1"];
+#[crate_id = "hyperloglog#0.1"];
 #[crate_type = "lib"];
 
 #[warn(non_camel_case_types,
@@ -15,7 +15,6 @@
 
 extern mod extra;
 
-use extra::sort;
 use std::num;
 use std::rand;
 use std::vec;
@@ -1292,7 +1291,8 @@ impl HyperLogLog {
             let dr = E - estimate_vector[i];
             r[i] = (dr * dr, i);
         }
-        sort::quick_sort3(r);
+        r.sort_by(|a, b|
+                  if a < b { Less } else if a > b { Greater } else { Equal });
         let top = r.slice(0, 6);
         top.map(|&ez| *ez.second_ref())
     }
