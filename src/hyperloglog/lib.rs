@@ -6,7 +6,7 @@
 #[desc = "A hyperloglog implementation."];
 #[license = "BSD"];
 #[crate_id = "hyperloglog#0.1"];
-#[crate_type = "lib"];
+#[crate_type = "rlib"];
 
 #[warn(non_camel_case_types,
        non_uppercase_statics,
