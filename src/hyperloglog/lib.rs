@@ -5,7 +5,7 @@
  */
 #[desc = "A hyperloglog implementation."];
 #[license = "BSD"];
-#[link(package_id = "hyperloglog", name = "hyperloglog", vers = "0.1")];
+#[create_ud = "hyperloglog#0.1"];
 #[crate_type = "lib"];
 
 #[warn(non_camel_case_types,
