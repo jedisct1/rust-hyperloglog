@@ -1299,7 +1299,7 @@ impl HyperLogLog {
 
     fn ep(&self) -> f64 {
         let sum = self.M.iter().fold(0.0, |acc, &x|
-                                     acc + num::pow(2.0, -(x as f64)));
+                                     acc + num::powf(2.0, -(x as f64)));
         let E = self.alpha * (self.m * self.m) as f64 / sum;
         if E <= (5 * self.m) as f64 {
             E - HyperLogLog::estimate_bias(E, self.p)
