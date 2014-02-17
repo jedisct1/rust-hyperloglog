@@ -13,7 +13,7 @@
        unnecessary_qualification,
        managed_heap_memory)];
 
-extern mod extra;
+extern crate extra;
 
 use std::num;
 use std::rand;
