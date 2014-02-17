@@ -1294,7 +1294,7 @@ impl HyperLogLog {
         r.sort_by(|a, b|
                   if a < b { Less } else if a > b { Greater } else { Equal });
         let top = r.slice(0, 6);
-        top.map(|&ez| *ez.second_ref())
+        top.map(|&ez| match ez { (_, b) => b })
     }
 
     fn ep(&self) -> f64 {
