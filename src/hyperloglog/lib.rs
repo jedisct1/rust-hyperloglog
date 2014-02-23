@@ -17,6 +17,8 @@ extern crate extra;
 
 use std::num;
 use std::rand;
+use std::hash::sip::SipHasher;
+use std::hash::Hasher;
 use std::vec;
 
 static TRESHOLD_DATA: [f64, ..15] =
@@ -1172,8 +1174,7 @@ pub struct HyperLogLog {
     priv p: u8,
     priv m: uint,
     priv M: ~[u8],
-    priv hash_key_1: u64,
-    priv hash_key_2: u64,
+    priv sip: SipHasher
 }
 
 impl HyperLogLog {
@@ -1187,8 +1188,8 @@ impl HyperLogLog {
                     p: p,
                     m: m,
                     M: vec::from_elem(m, 0u8),
-                    hash_key_1: rand::random(),
-                    hash_key_2: rand::random(),}
+                    sip: SipHasher::new_with_keys(rand::random(),
+                                                  rand::random())}
     }
 
     pub fn new_from_template(hll: &HyperLogLog) -> HyperLogLog {
@@ -1196,12 +1197,11 @@ impl HyperLogLog {
                     p: hll.p,
                     m: hll.m,
                     M: vec::from_elem(hll.m, 0u8),
-                    hash_key_1: hll.hash_key_1,
-                    hash_key_2: hll.hash_key_2}
+                    sip: hll.sip}
     }
 
     pub fn insert(&mut self, value: &str) {
-        let x = value.hash_keyed(self.hash_key_1, self.hash_key_2) as u64;
+        let x = self.sip.hash(&value);
         let j = x & (self.m - 1) as u64;
         let w = x >> self.p;
         let rho = HyperLogLog::get_rho(w, 64 - self.p);
@@ -1228,8 +1228,7 @@ impl HyperLogLog {
         assert!(src.alpha == self.alpha);
         assert!(src.p == self.p);
         assert!(src.m == self.m);
-        assert!(src.hash_key_1 == self.hash_key_1);
-        assert!(src.hash_key_2 == self.hash_key_2);
+        assert!(src.sip.hash(&42) == self.sip.hash(&42));
         for i in range(0, self.m) {
             if src.M[i] > self.M[i] {
                 self.M[i] = src.M[i];
