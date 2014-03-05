@@ -12,6 +12,7 @@
        non_uppercase_statics,
        unnecessary_qualification,
        managed_heap_memory)];
+#[allow(uppercase_variables)];
 
 extern crate extra;
 
