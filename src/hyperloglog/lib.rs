@@ -15,9 +15,9 @@
 #[allow(uppercase_variables)];
 
 extern crate extra;
+extern crate rand;
 
 use std::num;
-use std::rand;
 use std::hash::sip::SipHasher;
 use std::hash::Hasher;
 use std::vec;
