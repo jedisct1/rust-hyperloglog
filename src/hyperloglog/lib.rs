@@ -1286,7 +1286,7 @@ impl HyperLogLog {
         sum / nearest_neighbors.len() as f64
     }
 
-    fn get_nearest_neighbors(E: f64, estimate_vector: &[f64]) -> ~[uint] {
+    fn get_nearest_neighbors(E: f64, estimate_vector: &[f64]) -> Vec<uint> {
         let ev_len = estimate_vector.len();
         let mut r = Vec::from_elem(ev_len, (0.0, 0u));
         for i in range(0u, ev_len) {
@@ -1295,8 +1295,8 @@ impl HyperLogLog {
         }
         r.sort_by(|a, b|
                   if a < b { Less } else if a > b { Greater } else { Equal });
-        let top = r.slice(0, 6);
-        top.map(|&ez| match ez { (_, b) => b })
+        r.truncate(6);
+        r.iter().map(|&ez| match ez { (_, b) => b }).collect()
     }
 
     fn ep(&self) -> f64 {
