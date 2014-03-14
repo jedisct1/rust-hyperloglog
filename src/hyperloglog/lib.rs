@@ -13,7 +13,6 @@
        unnecessary_qualification,
        managed_heap_memory)];
 #[allow(uppercase_variables)];
-#[allow(deprecated_owned_vector)];
 
 extern crate extra;
 extern crate rand;
@@ -21,7 +20,7 @@ extern crate rand;
 use std::num;
 use std::hash::sip::SipHasher;
 use std::hash::Hasher;
-use std::vec;
+use std::vec_ng::Vec;
 
 static TRESHOLD_DATA: [f64, ..15] =
     [10.0, 20.0, 40.0, 80.0, 220.0, 400.0, 900.0, 1800.0, 3100.0, 6500.0,
@@ -1175,7 +1174,7 @@ pub struct HyperLogLog {
     priv alpha: f64,
     priv p: u8,
     priv m: uint,
-    priv M: ~[u8],
+    priv M: Vec<u8>,
     priv sip: SipHasher
 }
 
@@ -1189,7 +1188,7 @@ impl HyperLogLog {
         HyperLogLog{alpha: alpha,
                     p: p,
                     m: m,
-                    M: vec::from_elem(m, 0u8),
+                    M: Vec::from_elem(m, 0u8),
                     sip: SipHasher::new_with_keys(rand::random(),
                                                   rand::random())}
     }
@@ -1198,7 +1197,7 @@ impl HyperLogLog {
         HyperLogLog{alpha: hll.alpha,
                     p: hll.p,
                     m: hll.m,
-                    M: vec::from_elem(hll.m, 0u8),
+                    M: Vec::from_elem(hll.m, 0u8),
                     sip: hll.sip}
     }
 
@@ -1207,13 +1206,14 @@ impl HyperLogLog {
         let j = x & (self.m - 1) as u64;
         let w = x >> self.p;
         let rho = HyperLogLog::get_rho(w, 64 - self.p);
-        if rho > self.M[j] {
-            self.M[j] = rho;
+        let mjr = self.M.get_mut(j as uint);
+        if rho > *mjr {
+            *mjr = rho;
         }
     }
 
     pub fn len(&self) -> f64 {
-        let V = HyperLogLog::vec_count_zero(self.M);
+        let V = HyperLogLog::vec_count_zero(&self.M);
         if V > 0 {
             let H = self.m as f64 * (self.m as f64 / V as f64).ln();
             if H <= HyperLogLog::get_treshold(self.p) {
@@ -1232,8 +1232,9 @@ impl HyperLogLog {
         assert!(src.m == self.m);
         assert!(src.sip.hash(&42) == self.sip.hash(&42));
         for i in range(0, self.m) {
-            if src.M[i] > self.M[i] {
-                self.M[i] = src.M[i];
+            let (src_mir, mir) = (src.M.get(i), self.M.get_mut(i));
+            if *src_mir > *mir {
+                *mir = *src_mir;
             }
         }
     }
@@ -1272,7 +1273,7 @@ impl HyperLogLog {
         rho
     }
 
-    fn vec_count_zero(v: &[u8]) -> uint {
+    fn vec_count_zero(v: &Vec<u8>) -> uint {
         v.iter().count(|&x| x == 0)
     }
 
@@ -1287,10 +1288,10 @@ impl HyperLogLog {
 
     fn get_nearest_neighbors(E: f64, estimate_vector: &[f64]) -> ~[uint] {
         let ev_len = estimate_vector.len();
-        let mut r: ~[(f64, uint)] = vec::from_elem(ev_len, (0.0, 0u));
+        let mut r = Vec::from_elem(ev_len, (0.0, 0u));
         for i in range(0u, ev_len) {
             let dr = E - estimate_vector[i];
-            r[i] = (dr * dr, i);
+            *r.get_mut(i) = (dr * dr, i);
         }
         r.sort_by(|a, b|
                   if a < b { Less } else if a > b { Greater } else { Equal });
