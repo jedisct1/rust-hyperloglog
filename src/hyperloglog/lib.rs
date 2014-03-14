@@ -13,6 +13,7 @@
        unnecessary_qualification,
        managed_heap_memory)];
 #[allow(uppercase_variables)];
+#[allow(deprecated_owned_vector)];
 
 extern crate extra;
 extern crate rand;
