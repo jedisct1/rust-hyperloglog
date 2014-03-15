@@ -14,7 +14,6 @@
        managed_heap_memory)];
 #[allow(uppercase_variables)];
 
-extern crate extra;
 extern crate rand;
 
 use std::num;
