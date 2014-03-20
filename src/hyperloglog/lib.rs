@@ -19,7 +19,7 @@ extern crate rand;
 use std::num;
 use std::hash::sip::SipHasher;
 use std::hash::Hasher;
-use std::vec_ng::Vec;
+use std::vec::Vec;
 
 static TRESHOLD_DATA: [f64, ..15] =
     [10.0, 20.0, 40.0, 80.0, 220.0, 400.0, 900.0, 1800.0, 3100.0, 6500.0,
