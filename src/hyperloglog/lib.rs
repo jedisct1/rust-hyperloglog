@@ -1,18 +1,18 @@
-// (C)opyleft 2013 Frank Denis
+// (C)opyleft 2013,2014 Frank Denis
 
 /*!
  * HyperLogLog implementation for Rust
  */
-#[desc = "A hyperloglog implementation."];
-#[license = "BSD"];
-#[crate_id = "hyperloglog#0.1"];
-#[crate_type = "rlib"];
+#![desc = "A hyperloglog implementation."]
+#![license = "BSD"]
+#![crate_id = "hyperloglog#0.1"]
+#![crate_type = "rlib"]
 
-#[warn(non_camel_case_types,
-       non_uppercase_statics,
-       unnecessary_qualification,
-       managed_heap_memory)];
-#[allow(uppercase_variables)];
+#![warn(non_camel_case_types,
+        non_uppercase_statics,
+        unnecessary_qualification,
+        managed_heap_memory)]
+#![allow(uppercase_variables)]
 
 extern crate rand;
 
