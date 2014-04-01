@@ -1169,11 +1169,11 @@ static BIAS_DATA: &'static [&'static [f64]] =
         -713.308999999892]];
 
 pub struct HyperLogLog {
-    priv alpha: f64,
-    priv p: u8,
-    priv m: uint,
-    priv M: Vec<u8>,
-    priv sip: SipHasher
+    alpha: f64,
+    p: u8,
+    m: uint,
+    M: Vec<u8>,
+    sip: SipHasher
 }
 
 impl HyperLogLog {
