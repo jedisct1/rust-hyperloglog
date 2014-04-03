@@ -1242,7 +1242,7 @@ impl HyperLogLog {
     }
 
     fn get_treshold(p: u8) -> f64 {
-        TRESHOLD_DATA[p]
+        TRESHOLD_DATA[p as uint]
     }
 
     fn get_alpha(p: u8) -> f64 {
@@ -1276,9 +1276,10 @@ impl HyperLogLog {
     }
 
     fn estimate_bias(E: f64, p: u8) -> f64 {
-        let bias_vector = BIAS_DATA[p - 4];
+        let bias_vector = BIAS_DATA[(p - 4) as uint];
         let nearest_neighbors =
-            HyperLogLog::get_nearest_neighbors(E, RAW_ESTIMATE_DATA[p - 4]);
+            HyperLogLog::get_nearest_neighbors(E, RAW_ESTIMATE_DATA
+                                               [(p - 4) as uint]);
         let sum = nearest_neighbors.iter().fold(0.0, |acc, &neighbor|
                                                 acc + bias_vector[neighbor]);
         sum / nearest_neighbors.len() as f64
