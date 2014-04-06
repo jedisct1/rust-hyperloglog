@@ -16,7 +16,6 @@
 
 extern crate rand;
 
-use std::f64;
 use std::hash::sip::SipHasher;
 use std::hash::Hasher;
 
@@ -1300,7 +1299,7 @@ impl HyperLogLog {
 
     fn ep(&self) -> f64 {
         let sum = self.M.iter().fold(0.0, |acc, &x|
-                                     acc + f64::pow(2.0, -(x as f64)));
+                                     acc + 2.0f64.powi(-(x as i32)));
         let E = self.alpha * (self.m * self.m) as f64 / sum;
         if E <= (5 * self.m) as f64 {
             E - HyperLogLog::estimate_bias(E, self.p)
