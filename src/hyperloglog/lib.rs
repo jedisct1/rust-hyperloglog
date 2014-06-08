@@ -1270,7 +1270,7 @@ impl HyperLogLog {
     }
 
     fn vec_count_zero(v: &Vec<u8>) -> uint {
-        v.iter().count(|&x| x == 0)
+        v.iter().filter(|&x| *x == 0).count()
     }
 
     fn estimate_bias(E: f64, p: u8) -> f64 {
