@@ -1180,7 +1180,7 @@ impl HyperLogLog {
         let sr = 1.04 / error_rate;
         let p = (sr * sr).ln().ceil() as u8;
         let alpha = HyperLogLog::get_alpha(p);
-        let m = 1u << p;
+        let m = 1u << (p as uint);
         HyperLogLog{alpha: alpha,
                     p: p,
                     m: m,
@@ -1200,7 +1200,7 @@ impl HyperLogLog {
     pub fn insert(&mut self, value: &str) {
         let x = self.sip.hash(&value);
         let j = x & (self.m - 1) as u64;
-        let w = x >> self.p;
+        let w = x >> (self.p as uint);
         let rho = HyperLogLog::get_rho(w, 64 - self.p);
         let mjr = self.M.get_mut(j as uint);
         if rho > *mjr {
@@ -1226,7 +1226,7 @@ impl HyperLogLog {
         assert!(src.alpha == self.alpha);
         assert!(src.p == self.p);
         assert!(src.m == self.m);
-        assert!(src.sip.hash(&42) == self.sip.hash(&42));
+        assert!(src.sip.hash(&42u) == self.sip.hash(&42u));
         for i in range(0, self.m) {
             let (src_mir, mir) = (src.M.get(i), self.M.get_mut(i));
             if *src_mir > *mir {
@@ -1249,7 +1249,7 @@ impl HyperLogLog {
             4 => 0.673,
             5 => 0.697,
             6 => 0.709,
-            _ => 0.7213 / (1.0 + 1.079 / (1 << p) as f64)
+            _ => 0.7213 / (1.0 + 1.079 / (1 << (p as uint)) as f64)
         }
     }
 
@@ -1285,7 +1285,7 @@ impl HyperLogLog {
 
     fn get_nearest_neighbors(E: f64, estimate_vector: &[f64]) -> Vec<uint> {
         let ev_len = estimate_vector.len();
-        let mut r = Vec::from_elem(ev_len, (0.0, 0u));
+        let mut r = Vec::from_elem(ev_len, (0.0f64, 0u));
         for i in range(0u, ev_len) {
             let dr = E - estimate_vector[i];
             *r.get_mut(i) = (dr * dr, i);
