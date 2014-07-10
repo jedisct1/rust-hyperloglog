@@ -1236,7 +1236,7 @@ impl HyperLogLog {
     }
 
     pub fn clear(&mut self) {
-        self.M.mut_iter().advance(|x| { *x = 0; true });
+        self.M.mut_iter().all(|x| { *x = 0; true });
     }
 
     fn get_treshold(p: u8) -> f64 {
