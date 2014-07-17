@@ -1228,9 +1228,9 @@ impl HyperLogLog {
         assert!(src.m == self.m);
         assert!(src.sip.hash(&42u) == self.sip.hash(&42u));
         for i in range(0, self.m) {
-            let (src_mir, mir) = (src.M.get(i), self.M.get_mut(i));
-            if *src_mir > *mir {
-                *mir = *src_mir;
+            let (src_mir, mir) = (src.M[i], self.M.get_mut(i));
+            if src_mir > *mir {
+                *mir = src_mir;
             }
         }
     }
