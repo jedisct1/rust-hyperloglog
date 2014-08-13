@@ -1,0 +1,10 @@
+[project]
+
+name = "rust-hyperloglog"
+version = "0.0.1"
+authors = ["Frank Denis <github@pureftpd.org>"]
+
+[[lib]]
+
+name = "hyperloglog"
+path = "src/hyperloglog/lib.rs"
