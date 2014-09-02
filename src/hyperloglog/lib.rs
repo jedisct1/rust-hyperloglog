@@ -12,7 +12,7 @@
         non_uppercase_statics,
         unnecessary_qualification,
         managed_heap_memory)]
-#![allow(uppercase_variables)]
+#![allow(non_snake_case)]
 
 use std::hash::sip::SipHasher;
 use std::hash::Hasher;
