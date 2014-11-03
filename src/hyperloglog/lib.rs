@@ -9,8 +9,8 @@
 #![crate_type = "rlib"]
 
 #![warn(non_camel_case_types,
-        non_uppercase_statics,
-        unnecessary_qualification)]
+        non_upper_case_globals,
+        unused_qualifications)]
 #![allow(non_snake_case)]
 
 use std::hash::sip::SipHasher;
@@ -1201,7 +1201,7 @@ impl HyperLogLog {
         let j = x & (self.m - 1) as u64;
         let w = x >> (self.p as uint);
         let rho = HyperLogLog::get_rho(w, 64 - self.p);
-        let mjr = self.M.get_mut(j as uint);
+        let mjr = &mut self.M[j as uint];
         if rho > *mjr {
             *mjr = rho;
         }
@@ -1227,7 +1227,7 @@ impl HyperLogLog {
         assert!(src.m == self.m);
         assert!(src.sip.hash(&42u) == self.sip.hash(&42u));
         for i in range(0, self.m) {
-            let (src_mir, mir) = (src.M[i], self.M.get_mut(i));
+            let (src_mir, mir) = (src.M[i], &mut self.M[i]);
             if src_mir > *mir {
                 *mir = src_mir;
             }
@@ -1287,7 +1287,7 @@ impl HyperLogLog {
         let mut r = Vec::from_elem(ev_len, (0.0f64, 0u));
         for i in range(0u, ev_len) {
             let dr = E - estimate_vector[i];
-            *r.get_mut(i) = (dr * dr, i);
+            r[i] = (dr * dr, i);
         }
         r.sort_by(|a, b|
                   if a < b { Less } else if a > b { Greater } else { Equal });
