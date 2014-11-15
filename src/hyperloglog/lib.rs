@@ -15,6 +15,7 @@
 
 use std::hash::sip::SipHasher;
 use std::hash::Hasher;
+use std::num::Float;
 use std::rand;
 
 static TRESHOLD_DATA: [f64, ..15] =
@@ -1177,7 +1178,7 @@ impl HyperLogLog {
     pub fn new(error_rate: f64) -> HyperLogLog {
         assert!(error_rate > 0.0 && error_rate < 1.0);
         let sr = 1.04 / error_rate;
-        let p = (sr * sr).ln().ceil() as u8;
+        let p = Float::ln(sr * sr).ceil() as u8;
         let alpha = HyperLogLog::get_alpha(p);
         let m = 1u << (p as uint);
         HyperLogLog{alpha: alpha,
