@@ -4,3 +4,4 @@
 build
 Cargo.lock
 src/hyperloglog/hyperloglog
+target

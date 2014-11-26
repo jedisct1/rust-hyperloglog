@@ -5,6 +5,8 @@ version = "0.0.1"
 authors = ["Frank Denis <github@pureftpd.org>"]
 description = "Hyperloglog implementation in Rust"
 license = "ISC"
+homepage = "https://github.com/jedisct1/rust-hyperloglog"
+repository = "https://github.com/jedisct1/rust-hyperloglog"
 
 [lib]
 
