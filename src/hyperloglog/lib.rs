@@ -3,8 +3,6 @@
 /*!
  * HyperLogLog implementation for Rust
  */
-#![desc = "A hyperloglog implementation."]
-#![license = "BSD"]
 #![crate_name = "hyperloglog"]
 #![crate_type = "rlib"]
 
