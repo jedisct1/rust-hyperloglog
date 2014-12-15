@@ -1192,7 +1192,7 @@ impl HyperLogLog {
                     p: hll.p,
                     m: hll.m,
                     M: Vec::from_elem(hll.m, 0u8),
-                    sip: hll.sip}
+                    sip: hll.sip.clone()}
     }
 
     pub fn insert(&mut self, value: &str) {
