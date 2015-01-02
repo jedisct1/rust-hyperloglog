@@ -13,6 +13,7 @@
 
 use std::hash::sip::SipHasher;
 use std::hash::Hasher;
+use std::iter::repeat;
 use std::num::Float;
 use std::rand;
 
@@ -1182,7 +1183,7 @@ impl HyperLogLog {
         HyperLogLog{alpha: alpha,
                     p: p,
                     m: m,
-                    M: Vec::from_elem(m, 0u8),
+                    M: repeat(0u8).take(m).collect(),
                     sip: SipHasher::new_with_keys(rand::random(),
                                                   rand::random())}
     }
@@ -1191,7 +1192,7 @@ impl HyperLogLog {
         HyperLogLog{alpha: hll.alpha,
                     p: hll.p,
                     m: hll.m,
-                    M: Vec::from_elem(hll.m, 0u8),
+                    M: repeat(0u8).take(hll.m).collect(),
                     sip: hll.sip.clone()}
     }
 
@@ -1283,7 +1284,7 @@ impl HyperLogLog {
 
     fn get_nearest_neighbors(E: f64, estimate_vector: &[f64]) -> Vec<uint> {
         let ev_len = estimate_vector.len();
-        let mut r = Vec::from_elem(ev_len, (0.0f64, 0u));
+        let mut r: Vec<(f64, uint)> = repeat((0.0f64, 0u)).take(ev_len).collect();
         for i in range(0u, ev_len) {
             let dr = E - estimate_vector[i];
             r[i] = (dr * dr, i);

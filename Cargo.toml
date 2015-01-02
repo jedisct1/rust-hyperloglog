@@ -1,7 +1,7 @@
 [project]
 
 name = "hyperloglog"
-version = "0.0.1"
+version = "0.0.2"
 authors = ["Frank Denis <github@pureftpd.org>"]
 description = "Hyperloglog implementation in Rust"
 license = "ISC"
