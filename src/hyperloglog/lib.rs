@@ -15,9 +15,10 @@ use std::hash::sip::SipHasher;
 use std::hash::Hasher;
 use std::iter::repeat;
 use std::num::Float;
+use std::cmp::Ordering::{Less, Equal, Greater};
 use std::rand;
 
-static TRESHOLD_DATA: [f64, ..15] =
+static TRESHOLD_DATA: [f64; 15] =
     [10.0, 20.0, 40.0, 80.0, 220.0, 400.0, 900.0, 1800.0, 3100.0, 6500.0,
      11500.0, 20000.0, 50000.0, 120000.0, 350000.0];
 
