@@ -10,7 +10,7 @@
         non_upper_case_globals,
         unused_qualifications)]
 #![allow(non_snake_case)]
-#![feature(core, hash)]
+#![feature(hash)]
 
 extern crate rand;
 
