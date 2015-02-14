@@ -1320,7 +1320,7 @@ impl HyperLogLog {
 fn hyperloglog_test_simple() {
     let mut hll = HyperLogLog::new(0.00408);
     let keys = ["test1", "test2", "test3", "test2", "test2", "test2"];
-    for &k in keys.iter() {
+    for k in &keys {
         hll.insert(k);
     }
     assert!(hll.len().round() == 3.0);
@@ -1333,14 +1333,14 @@ fn hyperloglog_test_simple() {
 fn hyperloglog_test_merge() {
     let mut hll = HyperLogLog::new(0.00408);
     let keys = ["test1", "test2", "test3", "test2", "test2", "test2"];
-    for &k in keys.iter() {
+    for k in &keys {
         hll.insert(k);
     }
     assert!(hll.len().round() == 3.0);
 
     let mut hll2 = HyperLogLog::new_from_template(&hll);
     let keys2 = ["test3", "test4", "test4", "test4", "test4", "test1"];
-    for &k in keys2.iter() {
+    for k in &keys2 {
         hll2.insert(k);
     }
     assert!(hll2.len().round() == 3.0);
