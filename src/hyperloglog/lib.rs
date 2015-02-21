@@ -1182,7 +1182,7 @@ impl HyperLogLog {
         let p = Float::ln(sr * sr).ceil() as u8;
         assert!(p <= 64);
         let alpha = HyperLogLog::get_alpha(p);
-        let m = 1us << p;
+        let m = 1usize << p;
         HyperLogLog{alpha: alpha,
                     p: p,
                     m: m,
@@ -1257,7 +1257,7 @@ impl HyperLogLog {
             4 => 0.673,
             5 => 0.697,
             6 => 0.709,
-            _ => 0.7213 / (1.0 + 1.079 / (1us << (p as usize)) as f64)
+            _ => 0.7213 / (1.0 + 1.079 / (1usize << (p as usize)) as f64)
         }
     }
 
@@ -1293,7 +1293,8 @@ impl HyperLogLog {
 
     fn get_nearest_neighbors(E: f64, estimate_vector: &[f64]) -> Vec<usize> {
         let ev_len = estimate_vector.len();
-        let mut r: Vec<(f64, usize)> = repeat((0.0f64, 0us)).take(ev_len).collect();
+        let mut r: Vec<(f64, usize)> = repeat((0.0f64, 0usize)).
+            take(ev_len).collect();
         for i in (0..ev_len) {
             let dr = E - estimate_vector[i];
             r[i] = (dr * dr, i);
