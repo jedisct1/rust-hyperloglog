@@ -15,7 +15,6 @@ extern crate rand;
 
 use std::hash::{Hash, Hasher, SipHasher};
 use std::iter::repeat;
-use std::num::Float;
 use std::cmp::Ordering::{Less, Equal, Greater};
 
 static TRESHOLD_DATA: [f64; 15] =
@@ -1178,7 +1177,7 @@ impl HyperLogLog {
     pub fn new(error_rate: f64) -> HyperLogLog {
         assert!(error_rate > 0.0 && error_rate < 1.0);
         let sr = 1.04 / error_rate;
-        let p = Float::ln(sr * sr).ceil() as u8;
+        let p = f64::ln(sr * sr).ceil() as u8;
         assert!(p <= 64);
         let alpha = HyperLogLog::get_alpha(p);
         let m = 1usize << p;
