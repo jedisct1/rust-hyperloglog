@@ -1233,7 +1233,7 @@ impl HyperLogLog {
         42.hash(sip1);
         42.hash(sip2);
         assert!(sip1.finish() == sip2.finish());
-        for i in (0..self.m) {
+        for i in 0..self.m {
             let (src_mir, mir) = (src.M[i], &mut self.M[i]);
             if src_mir > *mir {
                 *mir = src_mir;
@@ -1293,7 +1293,7 @@ impl HyperLogLog {
         let ev_len = estimate_vector.len();
         let mut r: Vec<(f64, usize)> = repeat((0.0f64, 0usize)).
             take(ev_len).collect();
-        for i in (0..ev_len) {
+        for i in 0..ev_len {
             let dr = E - estimate_vector[i];
             r[i] = (dr * dr, i);
         }
