@@ -12,4 +12,4 @@ name = "hyperloglog"
 path = "src/hyperloglog/lib.rs"
 
 [dependencies.rand]
-rand = "*"
+version = ">= 0.3.14"
