@@ -1,7 +1,6 @@
 // (C)opyleft 2013-2016 Frank Denis
 
 //! HyperLogLog implementation for Rust
-//!
 #![crate_name = "hyperloglog"]
 
 #![warn(non_camel_case_types,
@@ -1231,6 +1230,10 @@ impl<V> HyperLogLog<V>
         }
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0.0
+    }
+
     pub fn merge(&mut self, src: &HyperLogLog<V>) {
         assert!(src.alpha == self.alpha);
         assert!(src.p == self.p);
@@ -1285,7 +1288,7 @@ impl<V> HyperLogLog<V>
         rho
     }
 
-    fn vec_count_zero(v: &Vec<u8>) -> usize {
+    fn vec_count_zero(v: &[u8]) -> usize {
         v.iter().filter(|&x| *x == 0).count()
     }
 
@@ -1338,10 +1341,11 @@ fn hyperloglog_test_simple() {
     for k in &keys {
         hll.insert(k);
     }
-    assert!(hll.len().round() == 3.0);
-
+    assert!((hll.len().round() - 3.0).abs() < std::f64::EPSILON);
+    assert!(!hll.is_empty());
     hll.clear();
-    assert!(hll.len().round() == 0.0);
+    assert!(hll.is_empty());
+    assert!(hll.len() == 0.0);
 }
 
 #[test]
@@ -1351,15 +1355,15 @@ fn hyperloglog_test_merge() {
     for k in &keys {
         hll.insert(k);
     }
-    assert!(hll.len().round() == 3.0);
+    assert!((hll.len().round() - 3.0).abs() < std::f64::EPSILON);
 
     let mut hll2 = HyperLogLog::new_from_template(&hll);
     let keys2 = ["test3", "test4", "test4", "test4", "test4", "test1"];
     for k in &keys2 {
         hll2.insert(k);
     }
-    assert!(hll2.len().round() == 3.0);
+    assert!((hll2.len().round() - 3.0).abs() < std::f64::EPSILON);
 
     hll.merge(&hll2);
-    assert!(hll.len().round() == 4.0);
+    assert!((hll.len().round() - 4.0).abs() < std::f64::EPSILON);
 }
