@@ -1,9 +1,8 @@
-// (C)opyleft 2013-2015 Frank Denis
+// (C)opyleft 2013-2016 Frank Denis
 
 //! HyperLogLog implementation for Rust
 //!
 #![crate_name = "hyperloglog"]
-#![crate_type = "rlib"]
 
 #![warn(non_camel_case_types,
         non_upper_case_globals,
