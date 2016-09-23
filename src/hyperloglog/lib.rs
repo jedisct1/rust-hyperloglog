@@ -1,8 +1,7 @@
 // (C)opyleft 2013-2015 Frank Denis
 
-/*!
- * HyperLogLog implementation for Rust
- */
+//! HyperLogLog implementation for Rust
+//!
 #![crate_name = "hyperloglog"]
 #![crate_type = "rlib"]
 
@@ -13,9 +12,10 @@
 
 extern crate rand;
 
+use std::cmp::Ordering::{Less, Equal, Greater};
 use std::hash::{Hash, Hasher, SipHasher};
 use std::iter::repeat;
-use std::cmp::Ordering::{Less, Equal, Greater};
+use std::marker::PhantomData;
 
 static TRESHOLD_DATA: [f64; 15] =
     [10.0, 20.0, 40.0, 80.0, 220.0, 400.0, 900.0, 1800.0, 3100.0, 6500.0,
@@ -1165,45 +1165,53 @@ static BIAS_DATA: &'static [&'static [f64]] =
         -704.050000000047, -850.486000000034, -757.43200000003,
         -713.308999999892]];
 
-pub struct HyperLogLog {
+pub struct HyperLogLog<V> {
     alpha: f64,
     p: u8,
     m: usize,
     M: Vec<u8>,
-    sip: SipHasher
+    sip: SipHasher,
+    v_phantom: PhantomData<V>,
 }
 
-impl HyperLogLog {
-    pub fn new(error_rate: f64) -> HyperLogLog {
+impl<V> HyperLogLog<V>
+    where V: Hash
+{
+    pub fn new(error_rate: f64) -> Self {
         assert!(error_rate > 0.0 && error_rate < 1.0);
         let sr = 1.04 / error_rate;
         let p = f64::ln(sr * sr).ceil() as u8;
         assert!(p <= 64);
-        let alpha = HyperLogLog::get_alpha(p);
+        let alpha = Self::get_alpha(p);
         let m = 1usize << p;
-        HyperLogLog{alpha: alpha,
-                    p: p,
-                    m: m,
-                    M: repeat(0u8).take(m).collect(),
-                    sip: SipHasher::new_with_keys(rand::random(),
-                                                  rand::random())}
+        HyperLogLog {
+            alpha: alpha,
+            p: p,
+            m: m,
+            M: repeat(0u8).take(m).collect(),
+            sip: SipHasher::new_with_keys(rand::random(), rand::random()),
+            v_phantom: PhantomData,
+        }
     }
 
-    pub fn new_from_template(hll: &HyperLogLog) -> HyperLogLog {
-        HyperLogLog{alpha: hll.alpha,
-                    p: hll.p,
-                    m: hll.m,
-                    M: repeat(0u8).take(hll.m).collect(),
-                    sip: hll.sip.clone()}
+    pub fn new_from_template(hll: &HyperLogLog<V>) -> Self {
+        HyperLogLog {
+            alpha: hll.alpha,
+            p: hll.p,
+            m: hll.m,
+            M: repeat(0u8).take(hll.m).collect(),
+            sip: hll.sip.clone(),
+            v_phantom: PhantomData,
+        }
     }
 
-    pub fn insert(&mut self, value: &str) {
+    pub fn insert(&mut self, value: &V) {
         let sip = &mut self.sip.clone();
         value.hash(sip);
         let x = sip.finish();
         let j = x as usize & (self.m - 1);
         let w = x >> self.p;
-        let rho = HyperLogLog::get_rho(w, 64 - self.p);
+        let rho = Self::get_rho(w, 64 - self.p);
         let mjr = &mut self.M[j];
         if rho > *mjr {
             *mjr = rho;
@@ -1211,10 +1219,10 @@ impl HyperLogLog {
     }
 
     pub fn len(&self) -> f64 {
-        let V = HyperLogLog::vec_count_zero(&self.M);
+        let V = Self::vec_count_zero(&self.M);
         if V > 0 {
             let H = self.m as f64 * (self.m as f64 / V as f64).ln();
-            if H <= HyperLogLog::get_treshold(self.p) {
+            if H <= Self::get_treshold(self.p) {
                 H
             } else {
                 self.ep()
@@ -1224,7 +1232,7 @@ impl HyperLogLog {
         }
     }
 
-    pub fn merge(&mut self, src: &HyperLogLog) {
+    pub fn merge(&mut self, src: &HyperLogLog<V>) {
         assert!(src.alpha == self.alpha);
         assert!(src.p == self.p);
         assert!(src.m == self.m);
@@ -1242,7 +1250,10 @@ impl HyperLogLog {
     }
 
     pub fn clear(&mut self) {
-        self.M.iter_mut().all(|x| { *x = 0; true });
+        self.M.iter_mut().all(|x| {
+            *x = 0;
+            true
+        });
     }
 
     fn get_treshold(p: u8) -> f64 {
@@ -1255,7 +1266,7 @@ impl HyperLogLog {
             4 => 0.673,
             5 => 0.697,
             6 => 0.709,
-            _ => 0.7213 / (1.0 + 1.079 / (1usize << (p as usize)) as f64)
+            _ => 0.7213 / (1.0 + 1.079 / (1usize << (p as usize)) as f64),
         }
     }
 
@@ -1270,7 +1281,7 @@ impl HyperLogLog {
     }
 
     fn get_rho(w: u64, max_width: u8) -> u8 {
-        let rho = max_width - HyperLogLog::bit_length(w) + 1;
+        let rho = max_width - Self::bit_length(w) + 1;
         assert!(rho > 0);
         rho
     }
@@ -1281,34 +1292,40 @@ impl HyperLogLog {
 
     fn estimate_bias(E: f64, p: u8) -> f64 {
         let bias_vector = BIAS_DATA[(p - 4) as usize];
-        let nearest_neighbors =
-            HyperLogLog::get_nearest_neighbors(E, RAW_ESTIMATE_DATA
-                                               [(p - 4) as usize]);
-        let sum = nearest_neighbors.iter().fold(0.0, |acc, &neighbor|
-                                                acc + bias_vector[neighbor]);
+        let nearest_neighbors = Self::get_nearest_neighbors(E, RAW_ESTIMATE_DATA[(p - 4) as usize]);
+        let sum = nearest_neighbors.iter().fold(0.0, |acc, &neighbor| acc + bias_vector[neighbor]);
         sum / nearest_neighbors.len() as f64
     }
 
     fn get_nearest_neighbors(E: f64, estimate_vector: &[f64]) -> Vec<usize> {
         let ev_len = estimate_vector.len();
-        let mut r: Vec<(f64, usize)> = repeat((0.0f64, 0usize)).
-            take(ev_len).collect();
+        let mut r: Vec<(f64, usize)> = repeat((0.0f64, 0usize))
+            .take(ev_len)
+            .collect();
         for i in 0..ev_len {
             let dr = E - estimate_vector[i];
             r[i] = (dr * dr, i);
         }
-        r.sort_by(|a, b|
-                  if a < b { Less } else if a > b { Greater } else { Equal });
+        r.sort_by(|a, b| if a < b {
+            Less
+        } else if a > b {
+            Greater
+        } else {
+            Equal
+        });
         r.truncate(6);
-        r.iter().map(|&ez| match ez { (_, b) => b }).collect()
+        r.iter()
+            .map(|&ez| match ez {
+                (_, b) => b,
+            })
+            .collect()
     }
 
     fn ep(&self) -> f64 {
-        let sum = self.M.iter().fold(0.0, |acc, &x|
-                                     acc + 2.0f64.powi(-(x as i32)));
+        let sum = self.M.iter().fold(0.0, |acc, &x| acc + 2.0f64.powi(-(x as i32)));
         let E = self.alpha * (self.m * self.m) as f64 / sum;
         if E <= (5 * self.m) as f64 {
-            E - HyperLogLog::estimate_bias(E, self.p)
+            E - Self::estimate_bias(E, self.p)
         } else {
             E
         }
