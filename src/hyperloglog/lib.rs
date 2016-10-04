@@ -9,9 +9,11 @@
 #![allow(non_snake_case)]
 
 extern crate rand;
+extern crate siphasher;
 
+use siphasher::sip::SipHasher13;
 use std::cmp::Ordering::{Less, Equal, Greater};
-use std::hash::{Hash, Hasher, SipHasher};
+use std::hash::{Hash, Hasher};
 use std::iter::repeat;
 use std::marker::PhantomData;
 
@@ -1168,7 +1170,7 @@ pub struct HyperLogLog<V> {
     p: u8,
     m: usize,
     M: Vec<u8>,
-    sip: SipHasher,
+    sip: SipHasher13,
     v_phantom: PhantomData<V>,
 }
 
@@ -1187,7 +1189,7 @@ impl<V> HyperLogLog<V>
             p: p,
             m: m,
             M: repeat(0u8).take(m).collect(),
-            sip: SipHasher::new_with_keys(rand::random(), rand::random()),
+            sip: SipHasher13::new_with_keys(rand::random(), rand::random()),
             v_phantom: PhantomData,
         }
     }
