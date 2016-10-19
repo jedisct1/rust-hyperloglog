@@ -3,7 +3,12 @@ hyperloglog
 
 A [HyperLogLog](https://static.googleusercontent.com/media/research.google.com/en/us/pubs/archive/40671.pdf) implementation in Rust, with bias correction.
 
-Installation: use [Cargo](http://crates.io).
+Installation: use [Cargo](http://crates.io):
+
+```toml
+[dependencies]
+hyperloglog = "~0"
+```
 
 Usage:
 
