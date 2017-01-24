@@ -1,11 +1,16 @@
 [project]
 name = "hyperloglog"
-version = "0.0.10"
+version = "0.0.11"
 authors = ["Frank Denis <github@pureftpd.org>"]
 description = "Hyperloglog implementation in Rust"
 license = "ISC"
 homepage = "https://github.com/jedisct1/rust-hyperloglog"
 repository = "https://github.com/jedisct1/rust-hyperloglog"
+categories = ["algorithms", "data-structures"]
+
+[badges]
+travis-ci = { repository = "jedisct1/rust-hyperloglog" }
+appveyor = { repository = "jedisct1/rust-hyperloglog" }
 
 [lib]
 name = "hyperloglog"
