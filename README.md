@@ -7,7 +7,7 @@ Installation: use [Cargo](http://crates.io):
 
 ```toml
 [dependencies]
-hyperloglog = "~0"
+hyperloglog = "0"
 ```
 
 Usage:
