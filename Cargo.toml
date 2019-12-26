@@ -1,4 +1,4 @@
-[project]
+[package]
 name = "hyperloglog"
 version = "0.0.12"
 authors = ["Frank Denis <github@pureftpd.org>"]
