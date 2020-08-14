@@ -1,6 +1,6 @@
 [package]
 name = "hyperloglog"
-version = "0.0.12"
+version = "0.0.13"
 authors = ["Frank Denis <github@pureftpd.org>"]
 description = "Hyperloglog implementation in Rust"
 license = "ISC"
@@ -13,6 +13,16 @@ name = "hyperloglog"
 path = "src/hyperloglog/lib.rs"
 
 [dependencies]
-bytecount = "0.6"
-rand = "0.7"
-siphasher = "0.3"
+bytecount = { version = "0.6", optional = true }
+rand = { version = "0.7", optional = true }
+siphasher = { version = "0.3", optional = true }
+serde_json = { version = "1.0", optional = true }
+
+[dependencies.serde]
+version = "1.0"
+features = ["derive"]
+
+[features]
+with_serde = ["serde/std", "serde_json"]
+std = ["bytecount", "rand", "siphasher"]
+default = ["std"]
