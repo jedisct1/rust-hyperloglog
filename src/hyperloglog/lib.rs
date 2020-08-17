@@ -84,7 +84,7 @@ where
         let V = Self::vec_count_zero(&self.M);
         if V > 0 {
             let H = self.m as f64 * (self.m as f64 / V as f64).ln();
-            if H <= Self::get_treshold(self.p) {
+            if H <= Self::get_threshold(self.p) {
                 H
             } else {
                 self.ep()
@@ -121,19 +121,7 @@ where
         });
     }
 
-    #[cfg(feature = "with_serde")]
-    pub fn serialize(&self) -> String {
-        serde_json::to_string(&self).unwrap()
-    }
-
-    #[cfg(feature = "with_serde")]
-    pub fn deserialize(json: &str) -> Result<Self, ()> {
-        let mut result = serde_json::from_str::<Self>(json).map_err(|_e| ())?;
-        result.sip = SipHasher13::new_with_keys(result.key0, result.key1);
-        Ok(result)
-    }
-
-    fn get_treshold(p: u8) -> f64 {
+    fn get_threshold(p: u8) -> f64 {
         data::THRESHOLD_DATA[p as usize]
     }
 
