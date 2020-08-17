@@ -33,6 +33,12 @@ where
     V: Hash,
 {
     pub fn new(error_rate: f64) -> Self {
+        let key0 = rand::random();
+        let key1 = rand::random();
+        Self::new_from_keys(error_rate, key0, key1)
+    }
+
+    pub fn new_from_keys(error_rate: f64, key0: u64, key1: u64) -> Self {
         assert!(error_rate > 0.0 && error_rate < 1.0);
         let sr = 1.04 / error_rate;
         let p = f64::ln(sr * sr).ceil() as u8;
@@ -40,8 +46,6 @@ where
         let alpha = Self::get_alpha(p);
         let m = 1usize << p;
 
-        let key0 = rand::random();
-        let key1 = rand::random();
         HyperLogLog {
             alpha,
             p,
@@ -246,11 +250,35 @@ fn hyperloglog_test_serialize() {
         hll.insert(k);
     }
 
-    let hll_str: String = hll.serialize();
-    let hll_de = match HyperLogLog::<String>::deserialize(&hll_str) {
+    let hll_str: String = serde_json::to_string(&hll).unwrap();
+
+    let hll_de = match serde_json::from_str::<HyperLogLog<String>>(&hll_str) {
         Ok(hll) => hll,
         Err(_) => panic!("Failed to deserialize"),
     };
 
     assert!((hll.len() - hll_de.len()).abs() < std::f64::EPSILON);
+}
+
+#[test]
+fn hyperloglog_test_merge_with_keys() {
+    let key0 = rand::random();
+    let key1 = rand::random();
+
+    let mut hll = HyperLogLog::new_from_keys(0.00408, key0, key1);
+    let keys = ["test1", "test2", "test3", "test2", "test2", "test2"];
+    for k in &keys {
+        hll.insert(k);
+    }
+    assert!((hll.len().round() - 3.0).abs() < std::f64::EPSILON);
+
+    let mut hll2 = HyperLogLog::new_from_keys(0.00408, key0, key1);
+    let keys2 = ["test3", "test4", "test4", "test4", "test4", "test1"];
+    for k in &keys2 {
+        hll2.insert(k);
+    }
+    assert!((hll2.len().round() - 3.0).abs() < std::f64::EPSILON);
+
+    hll.merge(&hll2);
+    assert!((hll.len().round() - 4.0).abs() < std::f64::EPSILON);
 }
