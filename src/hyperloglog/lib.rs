@@ -6,8 +6,6 @@
 #![allow(non_snake_case)]
 #![allow(clippy::unreadable_literal)]
 
-use rand;
-
 use siphasher::sip::SipHasher13;
 use std::cmp::Ordering::{Equal, Greater, Less};
 use std::hash::{Hash, Hasher};
@@ -4140,8 +4138,9 @@ where
         });
         r.truncate(6);
         r.iter()
-            .map(|&ez| match ez {
-                (_, b) => b,
+            .map(|&ez| {
+                let (_, b) = ez;
+                b
             })
             .collect()
     }
