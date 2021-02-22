@@ -10,7 +10,6 @@ use siphasher::sip::SipHasher13;
 use std::cmp::Ordering::{Equal, Greater, Less};
 use std::hash::{Hash, Hasher};
 use std::iter::repeat;
-use std::marker::PhantomData;
 
 static TRESHOLD_DATA: [f64; 15] = [
     10.0, 20.0, 40.0, 80.0, 220.0, 400.0, 900.0, 1800.0, 3100.0, 6500.0, 11500.0, 20000.0, 50000.0,
