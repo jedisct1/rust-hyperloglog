@@ -3982,19 +3982,15 @@ static BIAS_DATA: &[&[f64]] = &[
     ],
 ];
 
-pub struct HyperLogLog<V> {
+pub struct HyperLogLog {
     alpha: f64,
     p: u8,
     m: usize,
     M: Vec<u8>,
     sip: SipHasher13,
-    v_phantom: PhantomData<V>,
 }
 
-impl<V> HyperLogLog<V>
-where
-    V: Hash,
-{
+impl HyperLogLog {
     pub fn new(error_rate: f64) -> Self {
         assert!(error_rate > 0.0 && error_rate < 1.0);
         let sr = 1.04 / error_rate;
@@ -4008,25 +4004,27 @@ where
             m,
             M: repeat(0u8).take(m).collect(),
             sip: SipHasher13::new_with_keys(rand::random(), rand::random()),
-            v_phantom: PhantomData,
         }
     }
 
-    pub fn new_from_template(hll: &HyperLogLog<V>) -> Self {
+    pub fn new_from_template(hll: &HyperLogLog) -> Self {
         HyperLogLog {
             alpha: hll.alpha,
             p: hll.p,
             m: hll.m,
             M: repeat(0u8).take(hll.m).collect(),
             sip: hll.sip,
-            v_phantom: PhantomData,
         }
     }
 
-    pub fn insert(&mut self, value: &V) {
+    pub fn insert<V: Hash>(&mut self, value: &V) {
         let sip = &mut self.sip.clone();
         value.hash(sip);
         let x = sip.finish();
+        self.insert_by_hash_value(x);
+    }
+
+    pub fn insert_by_hash_value(&mut self, x: u64) {
         let j = x as usize & (self.m - 1);
         let w = x >> self.p;
         let rho = Self::get_rho(w, 64 - self.p);
@@ -4054,7 +4052,7 @@ where
         self.len() == 0.0
     }
 
-    pub fn merge(&mut self, src: &HyperLogLog<V>) {
+    pub fn merge(&mut self, src: &HyperLogLog) {
         assert!(src.p == self.p);
         assert!(src.m == self.m);
         let sip1 = &mut src.sip.clone();
