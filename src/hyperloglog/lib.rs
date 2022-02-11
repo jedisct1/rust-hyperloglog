@@ -4079,7 +4079,7 @@ impl HyperLogLog {
     }
 
     fn get_alpha(p: u8) -> f64 {
-        assert!(p >= 4 && p <= 16);
+        assert!((4..=16).contains(&p));
         match p {
             4 => 0.673,
             5 => 0.697,
