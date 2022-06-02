@@ -8,6 +8,7 @@
 
 use std::cmp::Ordering::{Equal, Greater, Less};
 use std::hash::{Hash, Hasher};
+use std::io::{Read, Write};
 use std::iter::repeat;
 
 use siphasher::sip::SipHasher13;
@@ -4075,6 +4076,47 @@ impl HyperLogLog {
         });
     }
 
+    pub fn write_to_buf(&self, buf: &mut impl Write) -> Result<(), std::io::Error> {
+        buf.write_all(&self.alpha.to_le_bytes())?;
+        buf.write_all(&self.p.to_le_bytes())?;
+        buf.write_all(&self.m.to_le_bytes())?;
+        buf.write_all(&self.M)?;
+        // Store keys of hasher
+        let (key0, key1) = self.sip.keys();
+        buf.write_all(&key0.to_le_bytes())?;
+        buf.write_all(&key1.to_le_bytes())?;
+
+        Ok(())
+    }
+
+    pub fn read_from_buf(buf: &mut impl Read) -> Result<Self, std::io::Error> {
+        let mut alpha_buf = [0u8; std::mem::size_of::<f64>()];
+        buf.read_exact(&mut alpha_buf)?;
+        let alpha = f64::from_le_bytes(alpha_buf);
+        let mut p_buf = [0u8; std::mem::size_of::<u8>()];
+        buf.read_exact(&mut p_buf)?;
+        let p = u8::from_le_bytes(p_buf);
+        let mut m_buf = [0u8; std::mem::size_of::<u64>()];
+        buf.read_exact(&mut m_buf)?;
+        let m = u64::from_le_bytes(m_buf) as usize;
+        let mut M = vec![0u8; m as usize];
+        buf.read_exact(&mut M)?;
+        let mut key0_buf = [0u8; std::mem::size_of::<u64>()];
+        buf.read_exact(&mut key0_buf)?;
+        let key0 = u64::from_le_bytes(key0_buf);
+        let mut key1_buf = [0u8; std::mem::size_of::<u64>()];
+        buf.read_exact(&mut key1_buf)?;
+        let key1 = u64::from_le_bytes(key1_buf);
+
+        Ok(HyperLogLog {
+            alpha,
+            p,
+            m,
+            M,
+            sip: SipHasher13::new_with_keys(key0, key1),
+        })
+    }
+
     fn get_treshold(p: u8) -> f64 {
         TRESHOLD_DATA[p as usize]
     }
@@ -4189,4 +4231,23 @@ fn hyperloglog_test_merge() {
 
     hll.merge(&hll2);
     assert!((hll.len().round() - 4.0).abs() < std::f64::EPSILON);
+}
+
+#[test]
+fn hyperloglog_test_write_read() {
+    let mut hll = HyperLogLog::new(0.00408);
+    hll.insert(&123);
+
+    let mut write_buf = Vec::new();
+    hll.write_to_buf(&mut write_buf).unwrap();
+
+    let mut buf = &write_buf[..];
+    let hll2 = HyperLogLog::read_from_buf(&mut buf).unwrap();
+
+    let error_margin = f64::EPSILON;
+    assert!((hll.alpha - hll2.alpha).abs() < error_margin);
+    assert_eq!(hll.p, hll2.p);
+    assert_eq!(hll.m, hll2.m);
+    assert_eq!(hll.M, hll2.M);
+    assert_eq!(hll.sip.keys(), hll2.sip.keys());
 }
