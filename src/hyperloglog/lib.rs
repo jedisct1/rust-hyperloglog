@@ -4018,13 +4018,17 @@ impl HyperLogLog {
         }
     }
 
-    pub fn new_with_keys(error_rate: f64, key0: u64, key1: u64) -> Self {
+    pub fn new_with_key(error_rate: f64, key: u128) -> Self {
         assert!(error_rate > 0.0 && error_rate < 1.0);
         let sr = 1.04 / error_rate;
         let p = f64::ln(sr * sr).ceil() as u8;
         assert!(p <= 64);
         let alpha = Self::get_alpha(p);
         let m = 1usize << p;
+
+        let key0 = (key >> 64) as u64;
+        let key1 = (key & u64::MAX as u128) as u64;
+
         HyperLogLog {
             alpha,
             p,
