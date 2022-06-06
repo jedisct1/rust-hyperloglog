@@ -4018,6 +4018,22 @@ impl HyperLogLog {
         }
     }
 
+    pub fn new_with_keys(error_rate: f64, key0: u64, key1: u64) -> Self {
+        assert!(error_rate > 0.0 && error_rate < 1.0);
+        let sr = 1.04 / error_rate;
+        let p = f64::ln(sr * sr).ceil() as u8;
+        assert!(p <= 64);
+        let alpha = Self::get_alpha(p);
+        let m = 1usize << p;
+        HyperLogLog {
+            alpha,
+            p,
+            m,
+            M: repeat(0u8).take(m).collect(),
+            sip: SipHasher13::new_with_keys(key0, key1),
+        }
+    }
+
     pub fn insert<V: Hash>(&mut self, value: &V) {
         let sip = &mut self.sip.clone();
         value.hash(sip);
