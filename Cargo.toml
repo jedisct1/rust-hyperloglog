@@ -1,16 +1,12 @@
 [package]
 name = "hyperloglog"
-version = "1.0.0"
+version = "1.0.1"
+edition = "2018"
 authors = ["Frank Denis <github@pureftpd.org>"]
 description = "Hyperloglog implementation in Rust"
 license = "ISC"
 homepage = "https://github.com/jedisct1/rust-hyperloglog"
 repository = "https://github.com/jedisct1/rust-hyperloglog"
-edition = "2018"
-
-[lib]
-name = "hyperloglog"
-path = "src/hyperloglog/lib.rs"
 
 [dependencies]
 bytecount = "0.6"
