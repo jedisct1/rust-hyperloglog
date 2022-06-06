@@ -12,6 +12,8 @@ use std::iter::repeat;
 
 use siphasher::sip::SipHasher13;
 
+/// A HyperLogLog counter
+#[derive(Clone, Debug)]
 pub struct HyperLogLog {
     alpha: f64,
     p: u8,
@@ -21,7 +23,10 @@ pub struct HyperLogLog {
 }
 
 impl HyperLogLog {
-    pub fn new(error_rate: f64) -> Self {
+    /// Create a new HyperLogLog counter with the given error rate and seed.
+    pub fn new_deterministic(error_rate: f64, seed: u128) -> Self {
+        let key0 = (seed >> 64) as u64;
+        let key1 = seed as u64;
         assert!(error_rate > 0.0 && error_rate < 1.0);
         let sr = 1.04 / error_rate;
         let p = f64::ln(sr * sr).ceil() as u8;
@@ -33,10 +38,19 @@ impl HyperLogLog {
             p,
             m,
             M: repeat(0u8).take(m).collect(),
-            sip: SipHasher13::new_with_keys(rand::random(), rand::random()),
+            sip: SipHasher13::new_with_keys(key0, key1),
         }
     }
 
+    /// Create a new HyperLogLog counter with the given error rate and a random
+    /// seed.
+    pub fn new(error_rate: f64) -> Self {
+        let seed: u128 = rand::random();
+        Self::new_deterministic(error_rate, seed)
+    }
+
+    /// Create a new HyperLogLog counter with the same parameters as an
+    /// existing one.
     pub fn new_from_template(hll: &HyperLogLog) -> Self {
         HyperLogLog {
             alpha: hll.alpha,
@@ -47,6 +61,7 @@ impl HyperLogLog {
         }
     }
 
+    /// Insert a new value into the HyperLogLog counter.
     pub fn insert<V: Hash>(&mut self, value: &V) {
         let sip = &mut self.sip.clone();
         value.hash(sip);
@@ -54,6 +69,7 @@ impl HyperLogLog {
         self.insert_by_hash_value(x);
     }
 
+    /// Insert a new u64 value into the HyperLogLog counter.
     pub fn insert_by_hash_value(&mut self, x: u64) {
         let j = x as usize & (self.m - 1);
         let w = x >> self.p;
@@ -64,6 +80,7 @@ impl HyperLogLog {
         }
     }
 
+    /// Return the cardinality of the HyperLogLog counter.
     pub fn len(&self) -> f64 {
         let V = Self::vec_count_zero(&self.M);
         if V > 0 {
@@ -78,10 +95,12 @@ impl HyperLogLog {
         }
     }
 
+    /// Return `true` if the HyperLogLog counter is empty.
     pub fn is_empty(&self) -> bool {
         self.len() == 0.0
     }
 
+    /// Merge another HyperLogLog counter into the current one.
     pub fn merge(&mut self, src: &HyperLogLog) {
         assert!(src.p == self.p);
         assert!(src.m == self.m);
@@ -98,6 +117,7 @@ impl HyperLogLog {
         }
     }
 
+    /// Wipe the HyperLogLog counter.
     pub fn clear(&mut self) {
         self.M.iter_mut().all(|x| {
             *x = 0;
