@@ -14,6 +14,7 @@ use siphasher::sip::SipHasher13;
 
 /// A HyperLogLog counter
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct HyperLogLog {
     alpha: f64,
     p: u8,
@@ -205,6 +206,14 @@ impl HyperLogLog {
             E
         }
     }
+}
+
+#[cfg(feature = "serde")]
+#[test]
+fn hyperloglog_serialize() {
+    let hll = HyperLogLog::new(0.00408);
+    let bytes = bincode::serialize(&hll).unwrap();
+    let _: HyperLogLog = bincode::deserialize(&bytes).unwrap();
 }
 
 #[test]
