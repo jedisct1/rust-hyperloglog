@@ -12,6 +12,215 @@ use std::iter::repeat;
 
 use siphasher::sip::SipHasher13;
 
+pub struct HyperLogLog {
+    alpha: f64,
+    p: u8,
+    m: usize,
+    M: Vec<u8>,
+    sip: SipHasher13,
+}
+
+impl HyperLogLog {
+    pub fn new(error_rate: f64) -> Self {
+        assert!(error_rate > 0.0 && error_rate < 1.0);
+        let sr = 1.04 / error_rate;
+        let p = f64::ln(sr * sr).ceil() as u8;
+        assert!(p <= 64);
+        let alpha = Self::get_alpha(p);
+        let m = 1usize << p;
+        HyperLogLog {
+            alpha,
+            p,
+            m,
+            M: repeat(0u8).take(m).collect(),
+            sip: SipHasher13::new_with_keys(rand::random(), rand::random()),
+        }
+    }
+
+    pub fn new_from_template(hll: &HyperLogLog) -> Self {
+        HyperLogLog {
+            alpha: hll.alpha,
+            p: hll.p,
+            m: hll.m,
+            M: repeat(0u8).take(hll.m).collect(),
+            sip: hll.sip,
+        }
+    }
+
+    pub fn insert<V: Hash>(&mut self, value: &V) {
+        let sip = &mut self.sip.clone();
+        value.hash(sip);
+        let x = sip.finish();
+        self.insert_by_hash_value(x);
+    }
+
+    pub fn insert_by_hash_value(&mut self, x: u64) {
+        let j = x as usize & (self.m - 1);
+        let w = x >> self.p;
+        let rho = Self::get_rho(w, 64 - self.p);
+        let mjr = &mut self.M[j];
+        if rho > *mjr {
+            *mjr = rho;
+        }
+    }
+
+    pub fn len(&self) -> f64 {
+        let V = Self::vec_count_zero(&self.M);
+        if V > 0 {
+            let H = self.m as f64 * (self.m as f64 / V as f64).ln();
+            if H <= Self::get_treshold(self.p) {
+                H
+            } else {
+                self.ep()
+            }
+        } else {
+            self.ep()
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0.0
+    }
+
+    pub fn merge(&mut self, src: &HyperLogLog) {
+        assert!(src.p == self.p);
+        assert!(src.m == self.m);
+        let sip1 = &mut src.sip.clone();
+        let sip2 = &mut self.sip.clone();
+        42.hash(sip1);
+        42.hash(sip2);
+        assert!(sip1.finish() == sip2.finish());
+        for i in 0..self.m {
+            let (src_mir, mir) = (src.M[i], &mut self.M[i]);
+            if src_mir > *mir {
+                *mir = src_mir;
+            }
+        }
+    }
+
+    pub fn clear(&mut self) {
+        self.M.iter_mut().all(|x| {
+            *x = 0;
+            true
+        });
+    }
+
+    fn get_treshold(p: u8) -> f64 {
+        TRESHOLD_DATA[p as usize]
+    }
+
+    fn get_alpha(p: u8) -> f64 {
+        assert!((4..=16).contains(&p));
+        match p {
+            4 => 0.673,
+            5 => 0.697,
+            6 => 0.709,
+            _ => 0.7213 / (1.0 + 1.079 / (1usize << (p as usize)) as f64),
+        }
+    }
+
+    fn bit_length(x: u64) -> u8 {
+        let mut bits: u8 = 0;
+        let mut xm = x;
+        while xm != 0 {
+            bits += 1;
+            xm >>= 1;
+        }
+        bits
+    }
+
+    fn get_rho(w: u64, max_width: u8) -> u8 {
+        let rho = max_width - Self::bit_length(w) + 1;
+        assert!(rho > 0);
+        rho
+    }
+
+    fn vec_count_zero(v: &[u8]) -> usize {
+        bytecount::count(v, 0)
+    }
+
+    fn estimate_bias(E: f64, p: u8) -> f64 {
+        let bias_vector = BIAS_DATA[(p - 4) as usize];
+        let nearest_neighbors = Self::get_nearest_neighbors(E, RAW_ESTIMATE_DATA[(p - 4) as usize]);
+        let sum = nearest_neighbors
+            .iter()
+            .fold(0.0, |acc, &neighbor| acc + bias_vector[neighbor]);
+        sum / nearest_neighbors.len() as f64
+    }
+
+    fn get_nearest_neighbors(E: f64, estimate_vector: &[f64]) -> Vec<usize> {
+        let ev_len = estimate_vector.len();
+        let mut r: Vec<(f64, usize)> = repeat((0.0f64, 0usize)).take(ev_len).collect();
+        for i in 0..ev_len {
+            let dr = E - estimate_vector[i];
+            r[i] = (dr * dr, i);
+        }
+        r.sort_by(|a, b| {
+            if a < b {
+                Less
+            } else if a > b {
+                Greater
+            } else {
+                Equal
+            }
+        });
+        r.truncate(6);
+        r.iter()
+            .map(|&ez| {
+                let (_, b) = ez;
+                b
+            })
+            .collect()
+    }
+
+    fn ep(&self) -> f64 {
+        let sum = self
+            .M
+            .iter()
+            .fold(0.0, |acc, &x| acc + 2.0f64.powi(-(x as i32)));
+        let E = self.alpha * (self.m * self.m) as f64 / sum;
+        if E <= (5 * self.m) as f64 {
+            E - Self::estimate_bias(E, self.p)
+        } else {
+            E
+        }
+    }
+}
+
+#[test]
+fn hyperloglog_test_simple() {
+    let mut hll = HyperLogLog::new(0.00408);
+    let keys = ["test1", "test2", "test3", "test2", "test2", "test2"];
+    for k in &keys {
+        hll.insert(k);
+    }
+    assert!((hll.len().round() - 3.0).abs() < std::f64::EPSILON);
+    assert!(!hll.is_empty());
+    hll.clear();
+    assert!(hll.is_empty());
+    assert!(hll.len() == 0.0);
+}
+
+#[test]
+fn hyperloglog_test_merge() {
+    let mut hll = HyperLogLog::new(0.00408);
+    let keys = ["test1", "test2", "test3", "test2", "test2", "test2"];
+    for k in &keys {
+        hll.insert(k);
+    }
+    assert!((hll.len().round() - 3.0).abs() < std::f64::EPSILON);
+
+    let mut hll2 = HyperLogLog::new_from_template(&hll);
+    let keys2 = ["test3", "test4", "test4", "test4", "test4", "test1"];
+    for k in &keys2 {
+        hll2.insert(k);
+    }
+    assert!((hll2.len().round() - 3.0).abs() < std::f64::EPSILON);
+
+    hll.merge(&hll2);
+    assert!((hll.len().round() - 4.0).abs() < std::f64::EPSILON);
+}
+
 static TRESHOLD_DATA: [f64; 15] = [
     10.0, 20.0, 40.0, 80.0, 220.0, 400.0, 900.0, 1800.0, 3100.0, 6500.0, 11500.0, 20000.0, 50000.0,
     120000.0, 350000.0,
@@ -3981,212 +4190,3 @@ static BIAS_DATA: &[&[f64]] = &[
         -713.308999999892,
     ],
 ];
-
-pub struct HyperLogLog {
-    alpha: f64,
-    p: u8,
-    m: usize,
-    M: Vec<u8>,
-    sip: SipHasher13,
-}
-
-impl HyperLogLog {
-    pub fn new(error_rate: f64) -> Self {
-        assert!(error_rate > 0.0 && error_rate < 1.0);
-        let sr = 1.04 / error_rate;
-        let p = f64::ln(sr * sr).ceil() as u8;
-        assert!(p <= 64);
-        let alpha = Self::get_alpha(p);
-        let m = 1usize << p;
-        HyperLogLog {
-            alpha,
-            p,
-            m,
-            M: repeat(0u8).take(m).collect(),
-            sip: SipHasher13::new_with_keys(rand::random(), rand::random()),
-        }
-    }
-
-    pub fn new_from_template(hll: &HyperLogLog) -> Self {
-        HyperLogLog {
-            alpha: hll.alpha,
-            p: hll.p,
-            m: hll.m,
-            M: repeat(0u8).take(hll.m).collect(),
-            sip: hll.sip,
-        }
-    }
-
-    pub fn insert<V: Hash>(&mut self, value: &V) {
-        let sip = &mut self.sip.clone();
-        value.hash(sip);
-        let x = sip.finish();
-        self.insert_by_hash_value(x);
-    }
-
-    pub fn insert_by_hash_value(&mut self, x: u64) {
-        let j = x as usize & (self.m - 1);
-        let w = x >> self.p;
-        let rho = Self::get_rho(w, 64 - self.p);
-        let mjr = &mut self.M[j];
-        if rho > *mjr {
-            *mjr = rho;
-        }
-    }
-
-    pub fn len(&self) -> f64 {
-        let V = Self::vec_count_zero(&self.M);
-        if V > 0 {
-            let H = self.m as f64 * (self.m as f64 / V as f64).ln();
-            if H <= Self::get_treshold(self.p) {
-                H
-            } else {
-                self.ep()
-            }
-        } else {
-            self.ep()
-        }
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0.0
-    }
-
-    pub fn merge(&mut self, src: &HyperLogLog) {
-        assert!(src.p == self.p);
-        assert!(src.m == self.m);
-        let sip1 = &mut src.sip.clone();
-        let sip2 = &mut self.sip.clone();
-        42.hash(sip1);
-        42.hash(sip2);
-        assert!(sip1.finish() == sip2.finish());
-        for i in 0..self.m {
-            let (src_mir, mir) = (src.M[i], &mut self.M[i]);
-            if src_mir > *mir {
-                *mir = src_mir;
-            }
-        }
-    }
-
-    pub fn clear(&mut self) {
-        self.M.iter_mut().all(|x| {
-            *x = 0;
-            true
-        });
-    }
-
-    fn get_treshold(p: u8) -> f64 {
-        TRESHOLD_DATA[p as usize]
-    }
-
-    fn get_alpha(p: u8) -> f64 {
-        assert!((4..=16).contains(&p));
-        match p {
-            4 => 0.673,
-            5 => 0.697,
-            6 => 0.709,
-            _ => 0.7213 / (1.0 + 1.079 / (1usize << (p as usize)) as f64),
-        }
-    }
-
-    fn bit_length(x: u64) -> u8 {
-        let mut bits: u8 = 0;
-        let mut xm = x;
-        while xm != 0 {
-            bits += 1;
-            xm >>= 1;
-        }
-        bits
-    }
-
-    fn get_rho(w: u64, max_width: u8) -> u8 {
-        let rho = max_width - Self::bit_length(w) + 1;
-        assert!(rho > 0);
-        rho
-    }
-
-    fn vec_count_zero(v: &[u8]) -> usize {
-        bytecount::count(v, 0)
-    }
-
-    fn estimate_bias(E: f64, p: u8) -> f64 {
-        let bias_vector = BIAS_DATA[(p - 4) as usize];
-        let nearest_neighbors = Self::get_nearest_neighbors(E, RAW_ESTIMATE_DATA[(p - 4) as usize]);
-        let sum = nearest_neighbors
-            .iter()
-            .fold(0.0, |acc, &neighbor| acc + bias_vector[neighbor]);
-        sum / nearest_neighbors.len() as f64
-    }
-
-    fn get_nearest_neighbors(E: f64, estimate_vector: &[f64]) -> Vec<usize> {
-        let ev_len = estimate_vector.len();
-        let mut r: Vec<(f64, usize)> = repeat((0.0f64, 0usize)).take(ev_len).collect();
-        for i in 0..ev_len {
-            let dr = E - estimate_vector[i];
-            r[i] = (dr * dr, i);
-        }
-        r.sort_by(|a, b| {
-            if a < b {
-                Less
-            } else if a > b {
-                Greater
-            } else {
-                Equal
-            }
-        });
-        r.truncate(6);
-        r.iter()
-            .map(|&ez| {
-                let (_, b) = ez;
-                b
-            })
-            .collect()
-    }
-
-    fn ep(&self) -> f64 {
-        let sum = self
-            .M
-            .iter()
-            .fold(0.0, |acc, &x| acc + 2.0f64.powi(-(x as i32)));
-        let E = self.alpha * (self.m * self.m) as f64 / sum;
-        if E <= (5 * self.m) as f64 {
-            E - Self::estimate_bias(E, self.p)
-        } else {
-            E
-        }
-    }
-}
-
-#[test]
-fn hyperloglog_test_simple() {
-    let mut hll = HyperLogLog::new(0.00408);
-    let keys = ["test1", "test2", "test3", "test2", "test2", "test2"];
-    for k in &keys {
-        hll.insert(k);
-    }
-    assert!((hll.len().round() - 3.0).abs() < std::f64::EPSILON);
-    assert!(!hll.is_empty());
-    hll.clear();
-    assert!(hll.is_empty());
-    assert!(hll.len() == 0.0);
-}
-
-#[test]
-fn hyperloglog_test_merge() {
-    let mut hll = HyperLogLog::new(0.00408);
-    let keys = ["test1", "test2", "test3", "test2", "test2", "test2"];
-    for k in &keys {
-        hll.insert(k);
-    }
-    assert!((hll.len().round() - 3.0).abs() < std::f64::EPSILON);
-
-    let mut hll2 = HyperLogLog::new_from_template(&hll);
-    let keys2 = ["test3", "test4", "test4", "test4", "test4", "test1"];
-    for k in &keys2 {
-        hll2.insert(k);
-    }
-    assert!((hll2.len().round() - 3.0).abs() < std::f64::EPSILON);
-
-    hll.merge(&hll2);
-    assert!((hll.len().round() - 4.0).abs() < std::f64::EPSILON);
-}
