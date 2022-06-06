@@ -23,3 +23,7 @@ hll2.insert(&"test3");
 
 hll.merge(&hll2);
 ```
+
+## Optional Cargo features:
+
+- `with_serde`: enable serialization via `serde`.
