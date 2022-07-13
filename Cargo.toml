@@ -1,6 +1,6 @@
 [package]
 name = "hyperloglog"
-version = "1.0.1"
+version = "1.0.2"
 edition = "2018"
 authors = ["Frank Denis <github@pureftpd.org>"]
 description = "Hyperloglog implementation in Rust"

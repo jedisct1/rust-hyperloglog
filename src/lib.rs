@@ -8,7 +8,6 @@
 
 use std::cmp::Ordering::{Equal, Greater, Less};
 use std::hash::{Hash, Hasher};
-use std::iter::repeat;
 
 use siphasher::sip::SipHasher13;
 
@@ -24,7 +23,8 @@ pub struct HyperLogLog {
 }
 
 impl HyperLogLog {
-    /// Create a new HyperLogLog counter with the given error rate and seed.
+    /// Create a new `HyperLogLog` counter with the given error rate and seed.
+    #[must_use]
     pub fn new_deterministic(error_rate: f64, seed: u128) -> Self {
         let key0 = (seed >> 64) as u64;
         let key1 = seed as u64;
@@ -38,31 +38,33 @@ impl HyperLogLog {
             alpha,
             p,
             m,
-            M: repeat(0u8).take(m).collect(),
+            M: vec![0; m],
             sip: SipHasher13::new_with_keys(key0, key1),
         }
     }
 
-    /// Create a new HyperLogLog counter with the given error rate and a random
+    /// Create a new `HyperLogLog` counter with the given error rate and a random
     /// seed.
+    #[must_use]
     pub fn new(error_rate: f64) -> Self {
         let seed: u128 = rand::random();
         Self::new_deterministic(error_rate, seed)
     }
 
-    /// Create a new HyperLogLog counter with the same parameters as an
+    /// Create a new `HyperLogLog` counter with the same parameters as an
     /// existing one.
+    #[must_use]
     pub fn new_from_template(hll: &HyperLogLog) -> Self {
         HyperLogLog {
             alpha: hll.alpha,
             p: hll.p,
             m: hll.m,
-            M: repeat(0u8).take(hll.m).collect(),
+            M: vec![0; hll.m],
             sip: hll.sip,
         }
     }
 
-    /// Insert a new value into the HyperLogLog counter.
+    /// Insert a new value into the `HyperLogLog` counter.
     pub fn insert<V: Hash>(&mut self, value: &V) {
         let sip = &mut self.sip.clone();
         value.hash(sip);
@@ -70,7 +72,7 @@ impl HyperLogLog {
         self.insert_by_hash_value(x);
     }
 
-    /// Insert a new u64 value into the HyperLogLog counter.
+    /// Insert a new u64 value into the `HyperLogLog` counter.
     pub fn insert_by_hash_value(&mut self, x: u64) {
         let j = x as usize & (self.m - 1);
         let w = x >> self.p;
@@ -81,7 +83,8 @@ impl HyperLogLog {
         }
     }
 
-    /// Return the cardinality of the HyperLogLog counter.
+    /// Return the cardinality of the `HyperLogLog` counter.
+    #[must_use]
     pub fn len(&self) -> f64 {
         let V = Self::vec_count_zero(&self.M);
         if V > 0 {
@@ -96,12 +99,13 @@ impl HyperLogLog {
         }
     }
 
-    /// Return `true` if the HyperLogLog counter is empty.
+    /// Return `true` if the `HyperLogLog` counter is empty.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.len() == 0.0
     }
 
-    /// Merge another HyperLogLog counter into the current one.
+    /// Merge another `HyperLogLog` counter into the current one.
     pub fn merge(&mut self, src: &HyperLogLog) {
         assert!(src.p == self.p);
         assert!(src.m == self.m);
@@ -118,12 +122,9 @@ impl HyperLogLog {
         }
     }
 
-    /// Wipe the HyperLogLog counter.
+    /// Wipe the `HyperLogLog` counter.
     pub fn clear(&mut self) {
-        self.M.iter_mut().all(|x| {
-            *x = 0;
-            true
-        });
+        self.M.fill(0);
     }
 
     fn get_treshold(p: u8) -> f64 {
@@ -141,13 +142,7 @@ impl HyperLogLog {
     }
 
     fn bit_length(x: u64) -> u8 {
-        let mut bits: u8 = 0;
-        let mut xm = x;
-        while xm != 0 {
-            bits += 1;
-            xm >>= 1;
-        }
-        bits
+        (64 - x.leading_zeros()) as u8
     }
 
     fn get_rho(w: u64, max_width: u8) -> u8 {
@@ -163,19 +158,14 @@ impl HyperLogLog {
     fn estimate_bias(E: f64, p: u8) -> f64 {
         let bias_vector = BIAS_DATA[(p - 4) as usize];
         let nearest_neighbors = Self::get_nearest_neighbors(E, RAW_ESTIMATE_DATA[(p - 4) as usize]);
-        let sum = nearest_neighbors
-            .iter()
-            .fold(0.0, |acc, &neighbor| acc + bias_vector[neighbor]);
+        let sum: f64 = nearest_neighbors.iter().map(|&neighbor| bias_vector[neighbor]).sum();
         sum / nearest_neighbors.len() as f64
     }
 
     fn get_nearest_neighbors(E: f64, estimate_vector: &[f64]) -> Vec<usize> {
-        let ev_len = estimate_vector.len();
-        let mut r: Vec<(f64, usize)> = repeat((0.0f64, 0usize)).take(ev_len).collect();
-        for i in 0..ev_len {
-            let dr = E - estimate_vector[i];
-            r[i] = (dr * dr, i);
-        }
+        let mut r: Vec<_> = estimate_vector.iter().copied().enumerate().map(|(i, est)| {
+            ((E - est).powi(2), i)
+        }).collect();
         r.sort_by(|a, b| {
             if a < b {
                 Less
@@ -185,20 +175,11 @@ impl HyperLogLog {
                 Equal
             }
         });
-        r.truncate(6);
-        r.iter()
-            .map(|&ez| {
-                let (_, b) = ez;
-                b
-            })
-            .collect()
+        r.iter().take(6).map(|&(_, b)| b).collect()
     }
 
     fn ep(&self) -> f64 {
-        let sum = self
-            .M
-            .iter()
-            .fold(0.0, |acc, &x| acc + 2.0f64.powi(-(x as i32)));
+        let sum: f64 = self.M.iter().map(|&x| 2.0f64.powi(-(x as i32))).sum();
         let E = self.alpha * (self.m * self.m) as f64 / sum;
         if E <= (5 * self.m) as f64 {
             E - Self::estimate_bias(E, self.p)
