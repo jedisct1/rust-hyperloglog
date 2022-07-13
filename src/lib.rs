@@ -8,7 +8,6 @@
 
 use std::cmp::Ordering::{Equal, Greater, Less};
 use std::hash::{Hash, Hasher};
-use std::iter::repeat;
 
 use siphasher::sip::SipHasher13;
 
@@ -38,7 +37,7 @@ impl HyperLogLog {
             alpha,
             p,
             m,
-            M: repeat(0u8).take(m).collect(),
+            M: vec![0; m],
             sip: SipHasher13::new_with_keys(key0, key1),
         }
     }
@@ -57,7 +56,7 @@ impl HyperLogLog {
             alpha: hll.alpha,
             p: hll.p,
             m: hll.m,
-            M: repeat(0u8).take(hll.m).collect(),
+            M: vec![0; hll.m],
             sip: hll.sip,
         }
     }
@@ -171,7 +170,7 @@ impl HyperLogLog {
 
     fn get_nearest_neighbors(E: f64, estimate_vector: &[f64]) -> Vec<usize> {
         let ev_len = estimate_vector.len();
-        let mut r: Vec<(f64, usize)> = repeat((0.0f64, 0usize)).take(ev_len).collect();
+        let mut r: Vec<(f64, usize)> = vec![(0., 0); ev_len];
         for i in 0..ev_len {
             let dr = E - estimate_vector[i];
             r[i] = (dr * dr, i);
