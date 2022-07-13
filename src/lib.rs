@@ -23,7 +23,8 @@ pub struct HyperLogLog {
 }
 
 impl HyperLogLog {
-    /// Create a new HyperLogLog counter with the given error rate and seed.
+    /// Create a new `HyperLogLog` counter with the given error rate and seed.
+    #[must_use]
     pub fn new_deterministic(error_rate: f64, seed: u128) -> Self {
         let key0 = (seed >> 64) as u64;
         let key1 = seed as u64;
@@ -42,15 +43,17 @@ impl HyperLogLog {
         }
     }
 
-    /// Create a new HyperLogLog counter with the given error rate and a random
+    /// Create a new `HyperLogLog` counter with the given error rate and a random
     /// seed.
+    #[must_use]
     pub fn new(error_rate: f64) -> Self {
         let seed: u128 = rand::random();
         Self::new_deterministic(error_rate, seed)
     }
 
-    /// Create a new HyperLogLog counter with the same parameters as an
+    /// Create a new `HyperLogLog` counter with the same parameters as an
     /// existing one.
+    #[must_use]
     pub fn new_from_template(hll: &HyperLogLog) -> Self {
         HyperLogLog {
             alpha: hll.alpha,
@@ -61,7 +64,7 @@ impl HyperLogLog {
         }
     }
 
-    /// Insert a new value into the HyperLogLog counter.
+    /// Insert a new value into the `HyperLogLog` counter.
     pub fn insert<V: Hash>(&mut self, value: &V) {
         let sip = &mut self.sip.clone();
         value.hash(sip);
@@ -69,7 +72,7 @@ impl HyperLogLog {
         self.insert_by_hash_value(x);
     }
 
-    /// Insert a new u64 value into the HyperLogLog counter.
+    /// Insert a new u64 value into the `HyperLogLog` counter.
     pub fn insert_by_hash_value(&mut self, x: u64) {
         let j = x as usize & (self.m - 1);
         let w = x >> self.p;
@@ -80,7 +83,8 @@ impl HyperLogLog {
         }
     }
 
-    /// Return the cardinality of the HyperLogLog counter.
+    /// Return the cardinality of the `HyperLogLog` counter.
+    #[must_use]
     pub fn len(&self) -> f64 {
         let V = Self::vec_count_zero(&self.M);
         if V > 0 {
@@ -95,12 +99,13 @@ impl HyperLogLog {
         }
     }
 
-    /// Return `true` if the HyperLogLog counter is empty.
+    /// Return `true` if the `HyperLogLog` counter is empty.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.len() == 0.0
     }
 
-    /// Merge another HyperLogLog counter into the current one.
+    /// Merge another `HyperLogLog` counter into the current one.
     pub fn merge(&mut self, src: &HyperLogLog) {
         assert!(src.p == self.p);
         assert!(src.m == self.m);
@@ -117,7 +122,7 @@ impl HyperLogLog {
         }
     }
 
-    /// Wipe the HyperLogLog counter.
+    /// Wipe the `HyperLogLog` counter.
     pub fn clear(&mut self) {
         self.M.fill(0);
     }
