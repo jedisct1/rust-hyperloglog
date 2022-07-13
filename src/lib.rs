@@ -119,10 +119,7 @@ impl HyperLogLog {
 
     /// Wipe the HyperLogLog counter.
     pub fn clear(&mut self) {
-        self.M.iter_mut().all(|x| {
-            *x = 0;
-            true
-        });
+        self.M.fill(0);
     }
 
     fn get_treshold(p: u8) -> f64 {
@@ -140,13 +137,7 @@ impl HyperLogLog {
     }
 
     fn bit_length(x: u64) -> u8 {
-        let mut bits: u8 = 0;
-        let mut xm = x;
-        while xm != 0 {
-            bits += 1;
-            xm >>= 1;
-        }
-        bits
+        (64 - x.leading_zeros()) as u8
     }
 
     fn get_rho(w: u64, max_width: u8) -> u8 {
@@ -162,19 +153,14 @@ impl HyperLogLog {
     fn estimate_bias(E: f64, p: u8) -> f64 {
         let bias_vector = BIAS_DATA[(p - 4) as usize];
         let nearest_neighbors = Self::get_nearest_neighbors(E, RAW_ESTIMATE_DATA[(p - 4) as usize]);
-        let sum = nearest_neighbors
-            .iter()
-            .fold(0.0, |acc, &neighbor| acc + bias_vector[neighbor]);
+        let sum: f64 = nearest_neighbors.iter().map(|&neighbor| bias_vector[neighbor]).sum();
         sum / nearest_neighbors.len() as f64
     }
 
     fn get_nearest_neighbors(E: f64, estimate_vector: &[f64]) -> Vec<usize> {
-        let ev_len = estimate_vector.len();
-        let mut r: Vec<(f64, usize)> = vec![(0., 0); ev_len];
-        for i in 0..ev_len {
-            let dr = E - estimate_vector[i];
-            r[i] = (dr * dr, i);
-        }
+        let mut r: Vec<_> = estimate_vector.iter().copied().enumerate().map(|(i, est)| {
+            ((E - est).powi(2), i)
+        }).collect();
         r.sort_by(|a, b| {
             if a < b {
                 Less
@@ -184,20 +170,11 @@ impl HyperLogLog {
                 Equal
             }
         });
-        r.truncate(6);
-        r.iter()
-            .map(|&ez| {
-                let (_, b) = ez;
-                b
-            })
-            .collect()
+        r.iter().take(6).map(|&(_, b)| b).collect()
     }
 
     fn ep(&self) -> f64 {
-        let sum = self
-            .M
-            .iter()
-            .fold(0.0, |acc, &x| acc + 2.0f64.powi(-(x as i32)));
+        let sum: f64 = self.M.iter().map(|&x| 2.0f64.powi(-(x as i32))).sum();
         let E = self.alpha * (self.m * self.m) as f64 / sum;
         if E <= (5 * self.m) as f64 {
             E - Self::estimate_bias(E, self.p)
