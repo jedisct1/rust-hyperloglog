@@ -89,7 +89,7 @@ impl HyperLogLog {
         let V = Self::vec_count_zero(&self.M);
         if V > 0 {
             let H = self.m as f64 * (self.m as f64 / V as f64).ln();
-            if H <= Self::get_treshold(self.p) {
+            if H <= Self::get_threshold(self.p) {
                 H
             } else {
                 self.ep()
@@ -127,8 +127,8 @@ impl HyperLogLog {
         self.M.fill(0);
     }
 
-    fn get_treshold(p: u8) -> f64 {
-        TRESHOLD_DATA[p as usize]
+    fn get_threshold(p: u8) -> f64 {
+        THRESHOLD_DATA[p as usize]
     }
 
     fn get_alpha(p: u8) -> f64 {
@@ -231,7 +231,7 @@ fn hyperloglog_test_merge() {
     assert!((hll.len().round() - 4.0).abs() < std::f64::EPSILON);
 }
 
-static TRESHOLD_DATA: [f64; 15] = [
+static THRESHOLD_DATA: [f64; 15] = [
     10.0, 20.0, 40.0, 80.0, 220.0, 400.0, 900.0, 1800.0, 3100.0, 6500.0, 11500.0, 20000.0, 50000.0,
     120000.0, 350000.0,
 ];
