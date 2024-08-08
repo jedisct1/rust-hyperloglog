@@ -31,8 +31,9 @@ impl HyperLogLog {
         let key1 = seed as u64;
         assert!(error_rate > 0.0 && error_rate < 1.0);
         let sr = 1.04 / error_rate;
-        let p = f64::ln(sr * sr).ceil() as u8;
+        let p = f64::log2(sr * sr).ceil() as u8;
         assert!(p <= 64);
+        assert!(p >= 4);
         let alpha = Self::get_alpha(p);
         let m = 1usize << p;
         HyperLogLog {
@@ -129,7 +130,7 @@ impl HyperLogLog {
     }
 
     fn get_threshold(p: u8) -> f64 {
-        THRESHOLD_DATA[p as usize]
+        THRESHOLD_DATA[p as usize - 4]
     }
 
     fn get_alpha(p: u8) -> f64 {
