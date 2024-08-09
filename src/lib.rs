@@ -30,9 +30,8 @@ impl HyperLogLog {
         let key0 = (seed >> 64) as u64;
         let key1 = seed as u64;
         assert!(error_rate > 0.0 && error_rate < 1.0);
-        let sr = 1.04 / error_rate;
-        let p = f64::log2(sr * sr).ceil() as u8;
-        assert!(p <= 64);
+        let p = (f64::log2(1.04 / error_rate) * 2.0).ceil() as u8;
+        assert!(p <= 16);
         assert!(p >= 4);
         let alpha = Self::get_alpha(p);
         let number_of_registers = 1usize << p;
