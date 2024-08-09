@@ -68,7 +68,7 @@ impl HyperLogLog {
 
     /// Insert a new value into the `HyperLogLog` counter.
     pub fn insert<V: Hash>(&mut self, value: &V) {
-        let mut sip = self.sip.clone();
+        let mut sip = self.sip;
         value.hash(&mut sip);
         let x = sip.finish();
         self.insert_by_hash_value(x);
@@ -108,8 +108,8 @@ impl HyperLogLog {
     pub fn merge(&mut self, src: &HyperLogLog) {
         assert!(src.p == self.p);
         assert!(src.number_of_registers == self.number_of_registers);
-        let mut sip1 = src.sip.clone();
-        let mut sip2 = self.sip.clone();
+        let mut sip1 = src.sip;
+        let mut sip2 = self.sip;
         42.hash(&mut sip1);
         42.hash(&mut sip2);
         assert_eq!(sip1.finish(), sip2.finish(), "The two SipHasher do not seem to have the same seed - Use new_deterministic instead of new to create the HyperLogLog.");
