@@ -18,8 +18,8 @@ use siphasher::sip::SipHasher13;
 pub struct HyperLogLog {
     alpha: f64,
     p: u8,
-    m: usize,
-    M: Vec<u8>,
+    number_of_registers: usize,
+    registers: Vec<u8>,
     sip: SipHasher13,
 }
 
@@ -35,12 +35,12 @@ impl HyperLogLog {
         assert!(p <= 64);
         assert!(p >= 4);
         let alpha = Self::get_alpha(p);
-        let m = 1usize << p;
+        let number_of_registers = 1usize << p;
         HyperLogLog {
             alpha,
             p,
-            m,
-            M: vec![0; m],
+            number_of_registers,
+            registers: vec![0; number_of_registers],
             sip: SipHasher13::new_with_keys(key0, key1),
         }
     }
@@ -60,8 +60,8 @@ impl HyperLogLog {
         HyperLogLog {
             alpha: hll.alpha,
             p: hll.p,
-            m: hll.m,
-            M: vec![0; hll.m],
+            number_of_registers: hll.number_of_registers,
+            registers: vec![0; hll.number_of_registers],
             sip: hll.sip,
         }
     }
@@ -76,10 +76,10 @@ impl HyperLogLog {
 
     /// Insert a new u64 value into the `HyperLogLog` counter.
     pub fn insert_by_hash_value(&mut self, x: u64) {
-        let j = x as usize & (self.m - 1);
+        let j = x as usize & (self.number_of_registers - 1);
         let w = x >> self.p;
         let rho = Self::get_rho(w, 64 - self.p);
-        let mjr = &mut self.M[j];
+        let mjr = &mut self.registers[j];
         if rho > *mjr {
             *mjr = rho;
         }
@@ -88,17 +88,14 @@ impl HyperLogLog {
     /// Return the cardinality of the `HyperLogLog` counter.
     #[must_use]
     pub fn len(&self) -> f64 {
-        let V = Self::vec_count_zero(&self.M);
-        if V > 0 {
-            let H = self.m as f64 * (self.m as f64 / V as f64).ln();
-            if H <= Self::get_threshold(self.p) {
-                H
-            } else {
-                self.ep()
+        let number_of_zero_registers = Self::vec_count_zero(&self.registers);
+        if number_of_zero_registers > 0 {
+            let estimate = self.number_of_registers as f64 * (self.number_of_registers as f64 / number_of_zero_registers as f64).ln();
+            if estimate <= Self::get_threshold(self.p) {
+                return estimate
             }
-        } else {
-            self.ep()
         }
+        self.ep()
     }
 
     /// Return `true` if the `HyperLogLog` counter is empty.
@@ -110,14 +107,14 @@ impl HyperLogLog {
     /// Merge another `HyperLogLog` counter into the current one.
     pub fn merge(&mut self, src: &HyperLogLog) {
         assert!(src.p == self.p);
-        assert!(src.m == self.m);
+        assert!(src.number_of_registers == self.number_of_registers);
         let mut sip1 = src.sip.clone();
         let mut sip2 = self.sip.clone();
         42.hash(&mut sip1);
         42.hash(&mut sip2);
         assert_eq!(sip1.finish(), sip2.finish(), "The two SipHasher do not seem to have the same seed - Use new_deterministic instead of new to create the HyperLogLog.");
-        for i in 0..self.m {
-            let (src_mir, mir) = (src.M[i], &mut self.M[i]);
+        for i in 0..self.number_of_registers {
+            let (src_mir, mir) = (src.registers[i], &mut self.registers[i]);
             if src_mir > *mir {
                 *mir = src_mir;
             }
@@ -126,15 +123,20 @@ impl HyperLogLog {
 
     /// Wipe the `HyperLogLog` counter.
     pub fn clear(&mut self) {
-        self.M.fill(0);
+        self.registers.fill(0);
     }
 
     fn get_threshold(p: u8) -> f64 {
         THRESHOLD_DATA[p as usize - 4]
     }
 
+    pub fn precision(&self) -> u8 {
+        self.p
+    }
+
     fn get_alpha(p: u8) -> f64 {
-        assert!((4..=16).contains(&p));
+        assert!(p >= 4);
+        assert!(p <= 16);
         match p {
             4 => 0.673,
             5 => 0.697,
@@ -181,9 +183,9 @@ impl HyperLogLog {
     }
 
     fn ep(&self) -> f64 {
-        let sum: f64 = self.M.iter().map(|&x| 2.0f64.powi(-(x as i32))).sum();
-        let E = self.alpha * (self.m * self.m) as f64 / sum;
-        if E <= (5 * self.m) as f64 {
+        let sum: f64 = self.registers.iter().map(|&x| 2.0f64.powi(-(x as i32))).sum();
+        let E = self.alpha * (self.number_of_registers * self.number_of_registers) as f64 / sum;
+        if E <= (5 * self.number_of_registers) as f64 {
             E - Self::estimate_bias(E, self.p)
         } else {
             E
