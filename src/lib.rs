@@ -158,14 +158,20 @@ impl HyperLogLog {
     fn estimate_bias(E: f64, p: u8) -> f64 {
         let bias_vector = BIAS_DATA[(p - 4) as usize];
         let nearest_neighbors = Self::get_nearest_neighbors(E, RAW_ESTIMATE_DATA[(p - 4) as usize]);
-        let sum: f64 = nearest_neighbors.iter().map(|&neighbor| bias_vector[neighbor]).sum();
+        let sum: f64 = nearest_neighbors
+            .iter()
+            .map(|&neighbor| bias_vector[neighbor])
+            .sum();
         sum / nearest_neighbors.len() as f64
     }
 
     fn get_nearest_neighbors(E: f64, estimate_vector: &[f64]) -> Vec<usize> {
-        let mut r: Vec<_> = estimate_vector.iter().copied().enumerate().map(|(i, est)| {
-            ((E - est).powi(2), i)
-        }).collect();
+        let mut r: Vec<_> = estimate_vector
+            .iter()
+            .copied()
+            .enumerate()
+            .map(|(i, est)| ((E - est).powi(2), i))
+            .collect();
         r.sort_by(|a, b| {
             if a < b {
                 Less
@@ -193,8 +199,10 @@ impl HyperLogLog {
 #[test]
 fn hyperloglog_serialize() {
     let hll = HyperLogLog::new(0.00408);
-    let bytes = bincode::serialize(&hll).unwrap();
-    let _: HyperLogLog = bincode::deserialize(&bytes).unwrap();
+    let bytes = bincode::serde::encode_to_vec(&hll, bincode::config::standard()).unwrap();
+    let (decoded, _): (HyperLogLog, _) =
+        bincode::serde::decode_from_slice(&bytes, bincode::config::standard()).unwrap();
+    let _ = decoded;
 }
 
 #[test]
