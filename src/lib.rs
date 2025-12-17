@@ -11,14 +11,59 @@ use std::hash::{Hash, Hasher};
 
 use siphasher::sip::SipHasher13;
 
+#[cfg(test)]
+mod sip_wincode {
+    use super::SipHasher13;
+    use std::mem::MaybeUninit;
+    use wincode::io::{Reader, Writer};
+    use wincode::{ReadResult, WriteResult};
+
+    pub struct SipHasher13Schema;
+
+    impl wincode::SchemaWrite for SipHasher13Schema {
+        type Src = SipHasher13;
+
+        fn size_of(_src: &SipHasher13) -> WriteResult<usize> {
+            Ok(16) // Two u64s = 16 bytes
+        }
+
+        fn write(writer: &mut impl Writer, src: &SipHasher13) -> WriteResult<()> {
+            let (k0, k1) = src.keys();
+            <u64 as wincode::SchemaWrite>::write(writer, &k0)?;
+            <u64 as wincode::SchemaWrite>::write(writer, &k1)?;
+            Ok(())
+        }
+    }
+
+    impl<'de> wincode::SchemaRead<'de> for SipHasher13Schema {
+        type Dst = SipHasher13;
+
+        fn read(
+            reader: &mut impl Reader<'de>,
+            dst: &mut MaybeUninit<SipHasher13>,
+        ) -> ReadResult<()> {
+            let mut k0 = MaybeUninit::<u64>::uninit();
+            let mut k1 = MaybeUninit::<u64>::uninit();
+            <u64 as wincode::SchemaRead>::read(reader, &mut k0)?;
+            <u64 as wincode::SchemaRead>::read(reader, &mut k1)?;
+            unsafe {
+                dst.write(SipHasher13::new_with_keys(k0.assume_init(), k1.assume_init()));
+            }
+            Ok(())
+        }
+    }
+}
+
 /// A HyperLogLog counter
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "with_serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(test, derive(wincode::SchemaWrite, wincode::SchemaRead))]
 pub struct HyperLogLog {
     alpha: f64,
     p: u8,
     m: usize,
     M: Vec<u8>,
+    #[cfg_attr(test, wincode(with = "sip_wincode::SipHasher13Schema"))]
     sip: SipHasher13,
 }
 
@@ -195,13 +240,11 @@ impl HyperLogLog {
     }
 }
 
-#[cfg(feature = "with_serde")]
 #[test]
 fn hyperloglog_serialize() {
     let hll = HyperLogLog::new(0.00408);
-    let bytes = bincode::serde::encode_to_vec(&hll, bincode::config::standard()).unwrap();
-    let (decoded, _): (HyperLogLog, _) =
-        bincode::serde::decode_from_slice(&bytes, bincode::config::standard()).unwrap();
+    let bytes = wincode::serialize(&hll).unwrap();
+    let decoded: HyperLogLog = wincode::deserialize(&bytes).unwrap();
     let _ = decoded;
 }
 
