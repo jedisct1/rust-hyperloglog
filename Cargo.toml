@@ -1,17 +1,17 @@
 [package]
-keywords = ["hyperloglog", "cardinality", "probabilistic", "counting", "sketch"]
 name = "hyperloglog"
-version = "1.0.3"
+version = "1.0.4"
 edition = "2018"
 authors = ["Frank Denis <github@pureftpd.org>"]
 description = "HyperLogLog cardinality estimation for approximate distinct counting, with bias correction, mergeable sketches, and optional Serde serialization."
+keywords = ["hyperloglog", "cardinality", "probabilistic", "counting", "sketch"]
 license = "ISC"
 homepage = "https://github.com/jedisct1/rust-hyperloglog"
 repository = "https://github.com/jedisct1/rust-hyperloglog"
 
 [dependencies]
 bytecount = "0.6"
-rand = "0.9.2"
+rand = "0.9.5"
 serde = { version = "1.0", optional = true, features = ["derive"] }
 siphasher = "1.0"
 
