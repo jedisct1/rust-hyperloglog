@@ -1,9 +1,10 @@
 [package]
+keywords = ["hyperloglog", "cardinality", "probabilistic", "counting", "sketch"]
 name = "hyperloglog"
 version = "1.0.3"
 edition = "2018"
 authors = ["Frank Denis <github@pureftpd.org>"]
-description = "Hyperloglog implementation in Rust"
+description = "HyperLogLog cardinality estimation for approximate distinct counting, with bias correction, mergeable sketches, and optional Serde serialization."
 license = "ISC"
 homepage = "https://github.com/jedisct1/rust-hyperloglog"
 repository = "https://github.com/jedisct1/rust-hyperloglog"
